@@ -4,11 +4,6 @@ from pyflann import FLANN
 import pcl
 
 
-def readpcl(name):
-    p = pcl.PointCloud()
-    p.from_file(name)
-
-
 def icp(source, target, D):
     '''
     Perform ICP for two arrays containing points. Note that these

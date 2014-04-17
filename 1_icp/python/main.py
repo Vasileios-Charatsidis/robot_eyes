@@ -4,6 +4,7 @@ import icp
 import os
 import pcl
 import numpy as np
+import subprocess
 
 
 def readpcd(name):
@@ -74,3 +75,5 @@ if __name__ == "__main__":
     main(input_dir=args.directory,
          maximum=args.maximum,
          debug=args.debug)
+    name = "merged.pcd"
+    subprocess.Popen(["pcl_viewer", name]).wait()

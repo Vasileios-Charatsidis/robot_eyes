@@ -17,7 +17,6 @@ def main(input_dir, verbose):
     Responsible for reading pcd files from the given directory,
     and calling ICP accordingly.
     '''
-    logging.warning("BOOM")
     pcd_files = sorted(list(os.path.join(input_dir, f)
                             for f in os.listdir(input_dir)
                             if f.endswith('.pcd') and not

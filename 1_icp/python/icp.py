@@ -19,8 +19,8 @@ def icp(source, target, D):
     centroid_target = np.mean(target, axis=0)
     centroid_source = np.mean(source, axis=0)
 
-    logging.debug("ORIGINAL SOURCE {}".format(centroid_source))
-    logging.debug("ORIGINAL_TARGET {}".format(centroid_target))
+    #logging.debug("ORIGINAL SOURCE {}".format(centroid_source))
+    #logging.debug("ORIGINAL_TARGET {}".format(centroid_target))
 
     # TODO somehow build index beforehand?
     rms = 1
@@ -33,7 +33,7 @@ def icp(source, target, D):
         transformed_source = np.dot(R, source.T).T + t
 
         centroid_transformed_source = np.mean(transformed_source, axis=0)
-        logging.debug("SOURCE: {}".format(centroid_transformed_source))
+        #logging.debug("SOURCE: {}".format(centroid_transformed_source))
         # Use flann to find nearest neighbours. Note that argument order means
         # 'for each transformed_source find the corresponding target'
         results, dists = \
@@ -41,14 +41,14 @@ def icp(source, target, D):
                      algorithm='kdtree',
                      trees=10, checks=120)
         # Compute new RMS
-        #for p1, r, d in zip(transformed_source, results, dists):
+        # for p1, r, d in zip(transformed_source, results, dists):
         #    print "{} close to {}, dist {}".format(p1, target[r], d)
         rms_new = math.sqrt(sum(dists) / float(N))
 
         # Use array slicing to get the correct targets
         selected_target = target[results, :]
         centroid_selected_target = np.mean(selected_target, axis=0)
-        print "TARGET:", centroid_target
+        #print "TARGET:", centroid_target
 
         # Compute covariance, perform SVD
         correlation = np.dot(
@@ -64,7 +64,7 @@ def icp(source, target, D):
         R = np.dot(u, v.T)
         t = np.dot(R, -centroid_source) + centroid_selected_target
 
-        logging.debug("Rotation\n{} \nTranslation\n{}".format(R, t.T))
+        #logging.debug("Rotation\n{} \nTranslation\n{}".format(R, t.T))
 
         raw_input()
     return rms

@@ -1,10 +1,10 @@
 import math
 import numpy as np
 from pyflann import FLANN
-import logging
+import sys
 
 
-def icp(source, target, D):
+def icp(source, target, D, debug=False):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -28,7 +28,9 @@ def icp(source, target, D):
 
     while rms != rms_new:
         rms = rms_new
-        logging.debug("RMS: {}".format(rms))
+        if debug:
+            print "RMS: {}".format(rms)
+            print R,
         # Rotate and translate the source
         transformed_source = np.dot(R, source.T).T + t
 
@@ -37,7 +39,7 @@ def icp(source, target, D):
         # Use flann to find nearest neighbours. Note that argument order means
         # 'for each transformed_source find the corresponding target'
         results, dists = \
-            flann.nn(target, transformed_source, num_neighbours=1,
+            flann.nn(target, transformed_source, num_neighbors=1,
                      algorithm='kdtree',
                      trees=10, checks=120)
         # Compute new RMS
@@ -50,23 +52,35 @@ def icp(source, target, D):
         centroid_selected_target = np.mean(selected_target, axis=0)
         #print "TARGET:", centroid_target
 
-        # Compute covariance, perform SVD
+        # Compute covariance, perform SVD using Kabsch algorithm
         correlation = np.dot(
             (transformed_source - centroid_transformed_source).T,
             (selected_target - centroid_selected_target))
         u, s, v = np.linalg.svd(correlation)
-        R = np.dot(v, u.T)
 
-        # check for righthandedness of the system
-        d = np.linalg.det(u) * np.linalg.det(v)
-        if d < 0:
-            u[:, -1] = -u[:, 1]
-        R = np.dot(u, v.T)
+        # u . S . v = correlation =
+        # V . S . W.T
+
+        # ensure righthandedness coordinate system and calculate R
+        d = np.linalg.det(np.dot(v, u.T))
+        sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 1, d]])
+        R = np.dot(np.dot(v.T, sign_matrix), u.T)
+
         t = np.dot(R, -centroid_source) + centroid_selected_target
 
         #logging.debug("Rotation\n{} \nTranslation\n{}".format(R, t.T))
 
-        raw_input()
+        if debug:
+            try:
+                l = raw_input()
+                if l == "q":
+                    sys.exit(0)
+            except EOFError:
+                print("")
+                sys.exit(0)
+            except KeyboardInterrupt:
+                print("")
+                sys.exit(0)
     return rms
 
 
@@ -94,4 +108,4 @@ if __name__ == "__main__":
                      [0, 1, 0],
                      [0.5, 0.5, 0]], dtype=float)
     pcd2 = np.dot(R, pcd1) + np.array([[3, 1, 2]])
-    icp(pcd1, pcd2, D=3)
+    icp(pcd1, pcd2, D=3, debug=True)

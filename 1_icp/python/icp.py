@@ -17,11 +17,8 @@ def icp(source, target, D, debug=0, epsilon=0.001):
     R = np.eye(D, dtype='float64')
     t = np.zeros((1, D), dtype='float64')
 
-    centroid_target = np.mean(target, axis=0)
+    # centroid_target = np.mean(target, axis=0)
     centroid_source = np.mean(source, axis=0)
-
-    #logging.debug("ORIGINAL SOURCE {}".format(centroid_source))
-    #logging.debug("ORIGINAL_TARGET {}".format(centroid_target))
 
     # TODO somehow build index beforehand?
     rms = 1
@@ -30,14 +27,15 @@ def icp(source, target, D, debug=0, epsilon=0.001):
     while abs(rms - rms_new) > epsilon:
         rms = rms_new
         if debug > 0:
-            print "RMS: {}".format(rms)
+            sys.stdout.write("\rRMS: {}".format(rms))
+            sys.stdout.flush()
         if debug > 1:
-            print R,
+            sys.stdout.write("\n{}\n".format(R))
+            sys.stdout.flush()
         # Rotate and translate the source
         transformed_source = np.dot(R, source.T).T + t
 
         centroid_transformed_source = np.mean(transformed_source, axis=0)
-        #logging.debug("SOURCE: {}".format(centroid_transformed_source))
         # Use flann to find nearest neighbours. Note that argument order means
         # 'for each transformed_source find the corresponding target'
         results, dists = \
@@ -52,7 +50,6 @@ def icp(source, target, D, debug=0, epsilon=0.001):
         # Use array slicing to get the correct targets
         selected_target = target[results, :]
         centroid_selected_target = np.mean(selected_target, axis=0)
-        #print "TARGET:", centroid_target
 
         # Compute covariance, perform SVD using Kabsch algorithm
         correlation = np.dot(
@@ -68,9 +65,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
         sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
         R = np.dot(np.dot(v.T, sign_matrix), u.T)
 
-        t = np.dot(R, -centroid_source) + centroid_selected_target
-
-        #logging.debug("Rotation\n{} \nTranslation\n{}".format(R, t.T))
+        t[0, :] = np.dot(R, -centroid_source) + centroid_selected_target
 
         if debug > 2:
             try:
@@ -83,7 +78,9 @@ def icp(source, target, D, debug=0, epsilon=0.001):
             except KeyboardInterrupt:
                 print("")
                 sys.exit(0)
-    return rms
+    if debug > 0:
+        print '\n'
+    return R, t, rms
 
 
 def rotation_matrix(axis, theta):

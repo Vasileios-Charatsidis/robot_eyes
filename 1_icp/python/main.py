@@ -12,7 +12,13 @@ def readpcd(name):
     return np.array(p.to_array(), dtype='float64')
 
 
-def main(input_dir, verbose):
+def writepcd(name, array):
+    p = pcl.PointCloud()
+    p.from_array(np.array(array, dtype='float32'))
+    p.to_file(name)
+
+
+def main(input_dir, maximum, debug):
     '''
     Responsible for reading pcd files from the given directory,
     and calling ICP accordingly.
@@ -22,12 +28,32 @@ def main(input_dir, verbose):
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))
     f1 = readpcd(pcd_files[0])
-    for pcd_file in pcd_files[1:]:
+
+    # To keep track of all rotation/translation/rms
+    merged = np.zeros((0, 3))
+
+    for file_id, pcd_file in enumerate(pcd_files[1:]):
+        # max number of scenes reached
+        if debug > 0:
+            print "Estimating R, t from {} to {}".format(
+                pcd_file[file_id], pcd_file)
+
+        if file_id == maximum:
+            break
+
         f2 = readpcd(pcd_file)
         # f1 and f2 are now numpy arrays waiting to be used
-        rms = icp.icp(f1, f2, D=3, debug=1)
+        R, t, rms = icp.icp(f1, f2, D=3, debug=1)
+
+        # Transform stuff
+        transformed_f1 = np.dot(R, f1.T).T + t
+        merged = np.vstack((merged, transformed_f1))
+
+        # Move to the next scene
         f1 = f2
-    return rms
+
+    writepcd("merged.pcd", merged)
+
 
 if __name__ == "__main__":
 
@@ -37,13 +63,14 @@ if __name__ == "__main__":
     arg_parser.add_argument('directory', help='Input directory')
     arg_parser.add_argument('-max', '--maximum', type=int, default=2,
                             help="Maximum number of files read")
-    arg_parser.add_argument('-v', '--verbose', action='store_const',
-                            const=True, default=False, help="Verbosity")
+    arg_parser.add_argument('-d', '--debug', type=int,
+                            default=0, help="Verbosity")
     args = arg_parser.parse_args()
 
-    logger = logging.getLogger('ICP_logger')
-    logging.basicConfig(level=(logging.DEBUG if args.verbose
-                               else logging.WARNING),
-                        format='%(levelname)s\t %(message)s')
+    #logger = logging.getLogger('ICP_logger')
+    #logging.basicConfig(level=(logging.DEBUG if args.verbose
+    #                           else logging.WARNING),
+    #                    format='%(levelname)s\t %(message)s')
     main(input_dir=args.directory,
-         verbose=args.verbose)
+         maximum=args.maximum,
+         debug=args.debug)

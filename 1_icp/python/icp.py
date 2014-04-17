@@ -29,7 +29,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
             sys.stdout.write("\rRMS: {}".format(rms))
             sys.stdout.flush()
         if debug > 1:
-            sys.stdout.write("\n{}\n".format(R))
+            sys.stdout.write("\nRotation:\n{}\n".format(R))
             sys.stdout.flush()
         # Rotate and translate the source
         transformed_source = np.dot(R, source.T).T + t
@@ -42,8 +42,6 @@ def icp(source, target, D, debug=0, epsilon=0.001):
                      algorithm='kdtree',
                      trees=10, checks=120)
         # Compute new RMS
-        # for p1, r, d in zip(transformed_source, results, dists):
-        #    print "{} close to {}, dist {}".format(p1, target[r], d)
         rms_new = math.sqrt(sum(dists) / float(N))
 
         # Use array slicing to get the correct targets
@@ -78,7 +76,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
                 print("")
                 sys.exit(0)
     if debug > 0:
-        print '\n'
+        print ''
     return R, t, rms
 
 

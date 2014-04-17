@@ -25,7 +25,7 @@ def main(input_dir, verbose):
     for pcd_file in pcd_files[1:]:
         f2 = readpcd(pcd_file)
         # f1 and f2 are now numpy arrays waiting to be used
-        rms = icp.icp(f1, f2, D=3)
+        rms = icp.icp(f1, f2, D=3, debug=1)
         f1 = f2
     return rms
 

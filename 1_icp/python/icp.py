@@ -4,7 +4,7 @@ from pyflann import FLANN
 import sys
 
 
-def icp(source, target, D, debug=False):
+def icp(source, target, D, debug=0):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -28,8 +28,9 @@ def icp(source, target, D, debug=False):
 
     while rms != rms_new:
         rms = rms_new
-        if debug:
+        if debug > 0:
             print "RMS: {}".format(rms)
+        if debug > 1:
             print R,
         # Rotate and translate the source
         transformed_source = np.dot(R, source.T).T + t
@@ -70,7 +71,7 @@ def icp(source, target, D, debug=False):
 
         #logging.debug("Rotation\n{} \nTranslation\n{}".format(R, t.T))
 
-        if debug:
+        if debug > 2:
             try:
                 l = raw_input()
                 if l == "q":
@@ -108,4 +109,4 @@ if __name__ == "__main__":
                      [0, 1, 0],
                      [0.5, 0.5, 0]], dtype=float)
     pcd2 = np.dot(R, pcd1) + np.array([[3, 1, 2]])
-    icp(pcd1, pcd2, D=3, debug=True)
+    icp(pcd1, pcd2, D=3, debug=3)

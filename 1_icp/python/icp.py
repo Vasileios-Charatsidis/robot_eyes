@@ -2,6 +2,7 @@ import math
 import numpy as np
 from pyflann import FLANN
 import sys
+import subprocess
 
 
 def icp(source, target, D, debug=0, epsilon=0.001):
@@ -110,3 +111,5 @@ if __name__ == "__main__":
                      [0.5, 0.5, 0]], dtype=float)
     pcd2 = np.dot(R, pcd1) + np.array([[3, 1, 2]])
     icp(pcd1, pcd2, D=3, debug=3)
+    name = "cloud.pcd"
+    subprocess.Popen(["pcl_viewer", name]).wait()

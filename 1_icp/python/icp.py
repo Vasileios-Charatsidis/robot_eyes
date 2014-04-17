@@ -4,7 +4,7 @@ from pyflann import FLANN
 import sys
 
 
-def icp(source, target, D, debug=0):
+def icp(source, target, D, debug=0, epsilon=0.001):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -26,7 +26,7 @@ def icp(source, target, D, debug=0):
     rms = 1
     rms_new = 0
 
-    while rms != rms_new:
+    while abs(rms - rms_new) > epsilon:
         rms = rms_new
         if debug > 0:
             print "RMS: {}".format(rms)

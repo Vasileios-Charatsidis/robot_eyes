@@ -1,0 +1,104 @@
+\documentclass{article}
+\title{\emph{Summary of paper:}\\Adaptive background mixture models for real-time
+tracking}
+\author{Chiel Kooijman \& Auke Wiggers}
+\usepackage{microtype}
+\usepackage[round]{natbib}
+\usepackage[scaled]{helvet}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage[T1]{fontenc}
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\subsection{Shortcomings of previous method}
+	Averaging images over time:
+	\begin{itemize}
+		\item Not robust to many (especially slowly) moving objects
+		\item Difficulty with bimodal backgrounds (I think this means existing
+		of two very different looking components)
+		\item Recovers slowly when the background is uncovered (?)
+		\item Has a single predetermined threshold
+	\end{itemize}
+	Other solution (Riddler et al.) uses kalman filter to model pixels, which
+	has a pixel-wise automatic threshold, but still:
+	\begin{itemize}
+	\item Recovers slowly
+	\item Does not handle bimodal backgrounds
+	\end{itemize}
+
+	Pfinder uses a ``multi-class statistical model'' for tracked objects with a
+	Gaussian per background pixel, which works well after an initialization
+	period in which nothing moves.
+
+	Friedmann and Russell use a pixel-wise EM algorithm that classifies to
+	three groups: Car, Road, Shadow
+
+
+\subsection{Approach proposed in this paper}
+	Model the values of a pixel as a mixture of Gaussians. Pixels that do not
+	fit in the background distribution are considered foreground.
+
+	There are two significant parameters:
+	\begin{itemize}
+	\item Learning constant $\alpha$
+	\item Proportion of data that should be background $T$
+	\end{itemize}
+
+\section{Method}
+	\emph{Multiple} Gaussians represent multiple surfaces in the background\\
+	\emph{Adaptive} Gaussians model the changing lighting conditions
+
+	Pixels that do not match their ``background Gaussians'' are grouped using
+	connected components and tracked using a multiple hypothesis tracker.
+
+	We consider a ``pixel process'' the history of its values over time.
+	$$\{X_1, \ldots, X_t \} = \{I(x_0, y_0, i) : 1 \leq i \leq t\}$$
+
+	Assumptions:
+	\begin{itemize}
+		\item More recent observations are more important determining Gaussian,
+			because otherwise newly added objects would not be considered
+			background until they had been there longer than they had not been
+			there, which could be an arbitrarily long time
+		\item Moving objects have more variance than static objects
+		\item There should be more data supporting the background distribution
+			because they are are repeated (?), and different objects are often
+			differently coloured.
+	\end{itemize}
+
+	The history of each pixel is modelled as a mixture of $K$ Gaussians. The
+	probability of observing the current pixel value is:
+	$$P(X_t) = \sum^K_{i=1} \omega_{i,t}~\eta
+	(X_i, \eta_{i, t}, \Sigma_{i,t})$$
+	$\omega$ is an estimate of the weight (proportion) of the Gaussian.\\
+	$\eta$ is the Gaussian PDF.
+
+	(The authors note that they use the assumption that Red, Green, and Blue
+	channels are independent and have the same variance---by using a diagonal
+	covariance matrix---which speeds up computation time at the cost of
+	accuracy.)
+
+	This method can be seen as expectation maximization, treating new
+	observations as sample sets of size 1, because it is non-stationary.
+
+	We use on-line K-means because calculating exact EM for each pixel is too
+	costly.
+
+	Every new pixel value, $X_t$, is checked against the existing $K$ Gaussian
+	distributions, until a match is found. A match is defined as a pixel value
+	within 2.5 standard deviations of a distribution.
+	If none of the $K$ distributions match, the least probable distribution is
+	replaced with $\mu$ as the current value and a high variance, and weight:
+	$$\omega_{k,t} = (1 - \alpha) \omega_{k,t-1} + \alpha(M_{k,t})$$
+
+
+\section{Questions}
+	\begin{itemize}
+		\item Does this algorithm perform well if the camera is moving? And if
+			not, how can this be remedied?
+		\item
+		\item
+	\end{itemize}
+\end{document}
+% vim: set spell:

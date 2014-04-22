@@ -144,32 +144,61 @@ Case 2b: pixel $X_t$ does not match MoG: \\
 \begin{frame}{Approach: Selecting background}
 For every pixel:
 \begin{enumerate} 
-\item Order Gaussians by $\omega / \sigma$ (descending)
-\item Select first $B$ distributions as background:
-$$ B = \argmin\limits_b \left( \sum_{k=1}^b \omega_k > T \right)$$
+  \item Order Gaussians by $\omega / \sigma$ (descending)
+  \item Select first $B$ distributions as background:
+  $$ B = \argmin\limits_b \left( \sum_{k=1}^b \omega_k > T \right)$$
 \end{enumerate}
 \end{frame}
 
 \begin{frame}{Tracking}
 Actual tracking enables evaluation of background subtraction:
 \begin{enumerate}
-\item Connected components to group foreground pixels
-\item Multi-hypothesis tracker through pool of Kalman filters
-\begin{itemize}
-\item Match models to connected regions
-\item `Kill' models that have low fitness
-\item Create new models for unmatched regions
-\end{itemize}
+  \item Connected components to group foreground pixels
+  \item Multi-hypothesis tracker through pool of Kalman filters
+  \begin{itemize}
+    \item Match models to connected regions
+    \item `Kill' models that have low fitness
+    \item Create new models for unmatched regions
+  \end{itemize}
 \end{enumerate}
 \end{frame}
 
 \begin{frame}{Results}
-
+\begin{figure}
+  \centering
+  \begin{subfigure}[t!]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.45]{tracker_4figs.png}
+  \end{subfigure}\quad \begin{subfigure}[t!]{0.45\textwidth}
+    \centering
+    \includegraphics[scale=0.45]{tracker_3figs.png}
+    \vspace{1.525cm}
+  \end{subfigure}
+      \vspace{-1mm}
+  \caption*{Found trajectories in street scenario, colors indicate direction.}
+\end{figure}
 \end{frame}
 
+\begin{frame}{Conclusion}
+\begin{itemize}
+\item Robust method for background subtraction
+\item Handles lighting, slow changes, recurring motions
+\item Real-time(!)
+\item Difficulties arising from shortcomings in tracking methods
+\end{itemize}
+
+Future work
+\begin{itemize}
+\item Use full covariance matrix
+\item Predict Gaussian changes (Kalman filter/PID controller)
+\end{itemize}
+\end{frame}
+
+\begin{comment}
 \begin{frame}[allowframebreaks]{References}
 	\bibliographystyle{apalike}
 	\bibliography{report}
 \end{frame}
+\end{comment}
 
 \end{document}

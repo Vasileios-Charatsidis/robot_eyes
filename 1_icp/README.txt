@@ -9,6 +9,9 @@ PointCloud Library (binaries for linux found at http://www.pointclouds.org/downl
     apt-get update
     apt-get install libpcl-all
 
+To build the Python bindings for PCL, install Cython. As root, do:
+    
+    apt-get install cython
 
 python-pcl from https://github.com/strawlab/python-pcl/:
 

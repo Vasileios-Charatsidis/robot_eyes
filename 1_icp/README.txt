@@ -22,7 +22,7 @@ as root, do:
      
 FLANN (with python bindings), building the latest from source:
 
-    curl www.cs.ubc.ca/research/flann/uploads/FLANN/flann-1.8.4-src.zip
+    wget www.cs.ubc.ca/research/flann/uploads/FLANN/flann-1.8.4-src.zip
     unzip flann-1.8.4-src.zip
     cd flann-1.8.4-src
     mkdir build

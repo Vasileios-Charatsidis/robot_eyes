@@ -91,6 +91,7 @@ Kalman Filter:
 \begin{frame}{Approach}
 Method:
 \begin{itemize}
+\item Represent every pixel through MoG!
 \item Multiple surfaces $\rightarrow$ multiple Gaussians
 \item Changing lighting conditions $\rightarrow$ adaptive Gaussans
 \end{itemize}
@@ -120,23 +121,32 @@ Makes for easy inversion of $\Sigma_{k,t}$! % may not be expensive nowadays
 \end{frame}
 
 \begin{frame}{Approach: Updating mixtures}
-Case 1: Pixel $X_t$ matches distribution $k$: \vspace{-3mm}
+Every pixel is checked against distributions until a match is found.\vspace{5mm}
+
+Two parameters: 
+\begin{itemize}
+\item Learning rate $\alpha$
+\item Background proportion $T$
+\end{itemize}
+\vspace{5mm}
+
+Case 1, pixel $X_t$ matches distribution $k$ if $\eta(X_t|\mu_{k,t-1}, \Sigma_{k, t-1}) \leq \tau$: \vspace{-3mm}
 \begin{align*}
   \mu_{k,t} &= (1 - \rho_k) \mu_{k, t-1} + \rho X_t \\
   \Sigma_{k,t} &= (1 - \rho_k) \Sigma_{k,t-1} + \rho (X_t - \mu_{k,t})^\top (X_t - \mu_{k,t}) \\
-\text{with }  \rho_k &= \alpha \eta(X_t | \mu_k , \sigma_k) \\
+\text{with }  \rho_k &= \alpha \eta(X_t | \mu_{k, t-1}, \Sigma_{k,t-1}) \\
 \omega_{k,t} &= (1-\alpha) \omega_{k,t-1} + \alpha 
 \end{align*}
 \end{frame}
 
 \begin{frame}{Approach: Updating mixtures}
-Case 2a: Pixel $X_t$ does not match distribution $k$: \vspace{-3mm}
+Case 2a, pixel $X_t$ does not match distribution $k$: \vspace{-3mm}
 \begin{align*}
   \mu_{k,t} &= \mu_{k, t-1} , \hspace{2mm} \Sigma_{k,t} =  \Sigma_{k,t-1} \\
 \omega_{k,t} &= (1-\alpha) \omega_{k,t-1}
 \end{align*}
 
-Case 2b: pixel $X_t$ does not match MoG: \\
+Case 2b, pixel $X_t$ does not match MoG: \\
       \hspace{1cm} Replace $K^{\text{th}}$ best mixture with $\eta(\mu_{K,t}=X_t, \Sigma_{K,t}=\sigma^2_{K} \textbf{I})$, \\
       \hspace{1cm} where $\sigma^2_K$ is high.
 \end{frame}
@@ -180,6 +190,8 @@ Actual tracking enables evaluation of background subtraction:
 \end{frame}
 
 \begin{frame}{Conclusion}
+
+Authors conclude:
 \begin{itemize}
 \item Robust method for background subtraction
 \item Handles lighting, slow changes, recurring motions

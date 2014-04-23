@@ -48,8 +48,8 @@ def merge_after(pcd_files, max_scenes, debug):
     Note that the error for each estimation will then also propagate.
     '''
     f1 = readpcd(pcd_files[0])
-
-    merged = np.zeros((0, 3))
+    # Initialize merged as the points in the first frame
+    merged = f1    # Is by reference, but it is never altered so that's okay
 
     for file_id, pcd_file in enumerate(pcd_files[1:]):
         if debug > 0:
@@ -62,11 +62,12 @@ def merge_after(pcd_files, max_scenes, debug):
         f2 = readpcd(pcd_file)
 
         # f1 and f2 are now numpy arrays waiting to be used
-        R, t, rms, transformed_f2 = icp.icp(f1, f2, D=3, debug=debug,
-                                            return_transformed_target=True)
+        R, t, rms = icp.icp(f1, f2, D=3, debug=debug)
 
+        # Transform f2 to merged given R and t
+        transformed_f2 = np.dot(R, f2.T).T + t
         # Add the transformed set of points to the total set
-        merged = np.vstack((merged, transformed_f1))
+        merged = np.vstack((merged, transformed_f2))
 
         # Move to the next scene
         f1 = f2
@@ -83,6 +84,8 @@ def merge_during(pcd_files, max_scenes, debug):
     target set will grow every iteration. Should we check the target
     for correspondences in the source instead?
     '''
+
+    # Initialize merged as the first set of points
     merged = readpcd(pcd_files[0])
 
     for file_id, pcd_file in enumerate(pcd_files[1:]):
@@ -98,10 +101,10 @@ def merge_during(pcd_files, max_scenes, debug):
         # f1 and f2 are now numpy arrays waiting to be used
         R, t, rms = icp.icp(merged, f2, D=3, debug=1)
 
-        # Transform f1 given R and t
-        transformed_merged = np.dot(R, merged.T).T + t
+        # Transform f2 to merged given R and t
+        transformed_f2 = np.dot(R, f2.T).T + t
         # Add the transformed set of points to the total set
-        merged = np.vstack((transformed_merged, f2))
+        merged = np.vstack((merged, transformed_f2))
     return merged
 
 
@@ -114,7 +117,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('directory', help='Input directory')
     arg_parser.add_argument('merge_method',
                             choices=('merge_after', 'merge_during'),
-                            help="Choose whether merges take place " +\
+                            help="Choose whether merges take place " +
                             "after or during estimation")
     # Optional args
     arg_parser.add_argument('-max', '--maximum', type=int, default=2,

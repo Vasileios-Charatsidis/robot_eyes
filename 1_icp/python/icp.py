@@ -4,8 +4,7 @@ from pyflann import FLANN
 import sys
 
 
-def icp(source, target, D, debug=0, epsilon=0.001,
-        return_transformed_target=False):
+def icp(source, target, D, debug=0, epsilon=0.001):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -36,7 +35,6 @@ def icp(source, target, D, debug=0, epsilon=0.001,
     rms = 1000
     rms_new = 1
 
-    # TODO max_iterations?
     while True:
         rms = rms_new
         if debug > 0:
@@ -95,8 +93,6 @@ def icp(source, target, D, debug=0, epsilon=0.001,
         print ''
 
     # We've already computed the
-    if return_transformed_target:
-        return R, t, rms, return_transformed_target
     return R, t, rms
 
 

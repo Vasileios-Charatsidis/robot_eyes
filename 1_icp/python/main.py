@@ -118,6 +118,8 @@ if __name__ == "__main__":
     arg_parser.add_argument('-d', '--debug', type=int,
                             default=0, help="Set debug level, " +
                             "0: silent, 1: verbose, 2: very verbose")
+    arg_parser.add_argument('-nv', '--no-visualization', action='store_true',
+                            help="Don't display the visualization")
     args = arg_parser.parse_args()
 
     main(input_dir=args.directory,
@@ -126,4 +128,5 @@ if __name__ == "__main__":
          debug=args.debug,
          )
     name = "merged.pcd"
-    subprocess.Popen(["pcl_viewer", name]).wait()
+    if not args.no_visualization:
+        subprocess.Popen(["pcl_viewer", name]).wait()

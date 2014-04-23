@@ -4,6 +4,7 @@ import os
 import pcl
 import numpy as np
 import subprocess
+import time
 
 
 def readpcd(name):
@@ -29,8 +30,12 @@ def main(input_dir, method, maximum, debug):
                             f.endswith('normal.pcd')))
     if debug > 0:
         print "Using method '{}' for merging.".format(method)
+        now = time.time()
 
     merged = eval("{}(pcd_files, maximum, debug)".format(method))
+    if debug > 0:
+        print "Parsed {} files in {} seconds.".format(maximum,
+                                                      time.time() - now)
     writepcd("merged.pcd", merged)
 
 
@@ -54,13 +59,12 @@ def merge_after(pcd_files, max_scenes, debug):
         # max number of scenes reached
         if file_id == max_scenes:
             break
-
         f2 = readpcd(pcd_file)
-        # f1 and f2 are now numpy arrays waiting to be used
-        R, t, rms = icp.icp(f1, f2, D=3, debug=debug)
 
-        # Transform f1 given R and t
-        transformed_f1 = np.dot(R, f1.T).T + t
+        # f1 and f2 are now numpy arrays waiting to be used
+        R, t, rms, transformed_f2 = icp.icp(f1, f2, D=3, debug=debug,
+                                            return_transformed_target=True)
+
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f1))
 

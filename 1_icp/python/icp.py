@@ -4,7 +4,7 @@ from pyflann import FLANN
 import sys
 
 
-def icp(source, target, D, debug=0, epsilon=0.001):
+def icp(source, target, D, debug=0, epsilon=0.00001):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -80,8 +80,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
 
         if debug > 2:
             try:
-                l = raw_input()
-                if l == "q":
+                if raw_input() == "q":
                     sys.exit(0)
             except EOFError:
                 print("")
@@ -89,8 +88,6 @@ def icp(source, target, D, debug=0, epsilon=0.001):
             except KeyboardInterrupt:
                 print("")
                 sys.exit(0)
-    if debug > 0:
-        print ''
     return R, t, rms
 
 

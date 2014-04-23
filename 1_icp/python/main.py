@@ -36,7 +36,9 @@ def main(input_dir, method, maximum, debug):
     if debug > 0:
         print "Parsed {} files in {} seconds.".format(maximum,
                                                       time.time() - now)
-    writepcd("merged.pcd", merged)
+    name = "merged.pcd"
+    writepcd(name, merged)
+    return name
 
 
 def merge_after(pcd_files, max_scenes, debug):
@@ -129,11 +131,10 @@ if __name__ == "__main__":
                             help="Don't display the visualization")
     args = arg_parser.parse_args()
 
-    main(input_dir=args.directory,
-         method=args.merge_method,
-         maximum=args.maximum,
-         debug=args.debug,
-         )
-    name = "merged.pcd"
+    name = main(input_dir=args.directory,
+                method=args.merge_method,
+                maximum=args.maximum,
+                debug=args.debug,
+                )
     if not args.no_visualization:
         subprocess.Popen(["pcl_viewer", name]).wait()

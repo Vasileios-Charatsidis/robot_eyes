@@ -91,10 +91,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
                 sys.exit(0)
     if debug > 0:
         print ''
-
-    # We've already computed the
     return R, t, rms
-
 
 
 def rotation_matrix(axis, theta):

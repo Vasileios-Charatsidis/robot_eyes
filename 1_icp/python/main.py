@@ -12,10 +12,10 @@ import time
 def readpcd(name):
     p = pcl.PointCloud()
     p.from_file(name)
-    return filter(np.array(p.to_array(), dtype='float64'))
+    return filter_vecs(np.array(p.to_array(), dtype='float64'))
 
 
-def filter(vectors, distance=1):
+def filter_vecs(vectors, distance=1):
     """Remove all points that are more distant than the given distance."""
     keep = []
     for vector in vectors:
@@ -97,7 +97,6 @@ def subsample(vectors, proportion=.15):
     assert l > 2
     np.random.shuffle(vectors)
     num = max(2, int(proportion * l))  # We can only match at least 2 points
-    filter(vectors, 10)
     return vectors[:num]
 
 

@@ -50,7 +50,7 @@ def icp(source, target, D, debug=0, epsilon=0.001):
 
         # Use flann to find nearest neighbours. Note that because of index it
         # means 'for each transformed_target find the corresponding source'
-        results, dists = flann.nn_index(transformed_target, num_neighbours=1,
+        results, dists = flann.nn_index(transformed_target, num_neighbors=1,
                                         checks=120)
 
         # Compute new RMS

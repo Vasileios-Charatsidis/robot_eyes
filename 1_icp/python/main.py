@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import argparse
 import icp
 import os
@@ -10,7 +12,16 @@ import time
 def readpcd(name):
     p = pcl.PointCloud()
     p.from_file(name)
-    return np.array(p.to_array(), dtype='float64')
+    return filter(np.array(p.to_array(), dtype='float64'))
+
+
+def filter(vectors, distance=1):
+    """Remove all points that are more distant than the given distance."""
+    keep = []
+    for vector in vectors:
+        if not vector[-1] > distance:
+            keep.append(vector)
+    return np.array(keep)
 
 
 def writepcd(name, array):
@@ -19,7 +30,7 @@ def writepcd(name, array):
     p.to_file(name)
 
 
-def main(input_dir, method, maximum, debug):
+def main(input_dir, method, maximum, subsample_size, debug):
     '''
     Responsible for collecting pcd files from the given directory,
     and calling ICP according to the selected method.
@@ -32,16 +43,16 @@ def main(input_dir, method, maximum, debug):
         print "Using method '{}' for merging.".format(method)
         now = time.time()
 
-    merged = eval("{}(pcd_files, maximum, debug)".format(method))
+    mrgd = eval("{}(pcd_files, maximum, subsample_size, debug)".format(method))
     if debug > 0:
         print "Parsed {} files in {} seconds.".format(maximum,
                                                       time.time() - now)
     name = "merged.pcd"
-    writepcd(name, merged)
+    writepcd(name, mrgd)
     return name
 
 
-def merge_after(pcd_files, max_scenes, debug):
+def merge_after(pcd_files, max_scenes, subsample_size, debug):
     '''
     Estimate rotation translation for every consecutive frame. Use
     the estimates to create one set of points, by transforming each
@@ -61,7 +72,9 @@ def merge_after(pcd_files, max_scenes, debug):
         # max number of scenes reached
         if file_id == max_scenes:
             break
-        f2 = readpcd(pcd_file)
+
+        f2_all = readpcd(pcd_file)
+        f2 = subsample(f2_all, subsample_size)
 
         # f1 and f2 are now numpy arrays waiting to be used
         R, t, rms = icp.icp(f1, f2, D=3, debug=debug)
@@ -76,7 +89,19 @@ def merge_after(pcd_files, max_scenes, debug):
     return merged
 
 
-def merge_during(pcd_files, max_scenes, debug):
+def subsample(vectors, proportion=.15):
+    """Return a view of a matrix representing a random subsample of input
+    vectors. Note that the original matrix is shuffled.
+    """
+    l = len(vectors)
+    assert l > 2
+    np.random.shuffle(vectors)
+    num = max(2, int(proportion * l))  # We can only match at least 2 points
+    filter(vectors, 10)
+    return vectors[:num]
+
+
+def merge_during(pcd_files, max_scenes, subsample_size, debug):
     '''
     Instead of estimating transformation matrix from every frame
     to its consecutive frame, we merge the scenes during the process,
@@ -99,7 +124,9 @@ def merge_during(pcd_files, max_scenes, debug):
         if file_id == max_scenes:
             break
 
-        f2 = readpcd(pcd_file)
+        f2_all = readpcd(pcd_file)
+        f2 = subsample(f2_all, subsample_size)
+
         # f1 and f2 are now numpy arrays waiting to be used
         R, t, rms = icp.icp(merged, f2, D=3, debug=1)
 
@@ -124,6 +151,8 @@ if __name__ == "__main__":
     # Optional args
     arg_parser.add_argument('-max', '--maximum', type=int, default=2,
                             help="Maximum number of scenes to read")
+    arg_parser.add_argument('-s', '--subsample', type=float, default=1.,
+                            help="The proportion of points to sample")
     arg_parser.add_argument('-d', '--debug', type=int,
                             default=0, help="Set debug level, " +
                             "0: silent, 1: verbose, 2: very verbose")
@@ -131,10 +160,11 @@ if __name__ == "__main__":
                             help="Don't display the visualization")
     args = arg_parser.parse_args()
 
-    main(input_dir=args.data_dir,
-         method=args.merge_method,
-         maximum=args.maximum,
-         debug=args.debug,
-         )
+    name = main(input_dir=args.data_dir,
+                method=args.merge_method,
+                maximum=args.maximum,
+                subsample_size=args.subsample,
+                debug=args.debug,
+                )
     if not args.no_visualization:
         subprocess.Popen(["pcl_viewer", name]).wait()

@@ -116,7 +116,7 @@ if __name__ == "__main__":
         description="Implementation of ICP.",
         epilog="...")
     # Location args
-    arg_parser.add_argument('directory', help='Input directory')
+    arg_parser.add_argument('data_dir', help='Data directory')
     arg_parser.add_argument('merge_method',
                             choices=('merge_after', 'merge_during'),
                             help="Choose whether merges take place " +
@@ -131,10 +131,10 @@ if __name__ == "__main__":
                             help="Don't display the visualization")
     args = arg_parser.parse_args()
 
-    name = main(input_dir=args.directory,
-                method=args.merge_method,
-                maximum=args.maximum,
-                debug=args.debug,
-                )
+    main(input_dir=args.data_dir,
+         method=args.merge_method,
+         maximum=args.maximum,
+         debug=args.debug,
+         )
     if not args.no_visualization:
         subprocess.Popen(["pcl_viewer", name]).wait()

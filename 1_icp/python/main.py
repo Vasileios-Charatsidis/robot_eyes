@@ -28,7 +28,7 @@ def main(input_dir, method, maximum, debug):
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))
     if debug > 0:
-        print "Using method '{method}' for merging.".format(method)
+        print "Using method '{}' for merging.".format(method)
 
     merged = eval("{}(pcd_files, maximum, debug)".format(method))
     writepcd("merged.pcd", merged)

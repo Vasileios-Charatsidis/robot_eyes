@@ -104,7 +104,10 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         # Transform f2 to merged given R and t
         transformed_f2 = np.dot(R, f2_all.T).T + t
         # Compute rms for this scene transitions, for the whole set
-        rms = compute_rms(merged, transformed_f2)
+        if subsample_size < 1:
+            rms = compute_rms(merged, transformed_f2)
+        else:
+            rms = rms_subsample
 
         if debug > 0:
             print "\rRMS for the whole scene:", rms

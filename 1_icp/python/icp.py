@@ -41,7 +41,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
     flann = FLANN()
 
     # source_h = np.hstack((source, np.ones((source.shape[0], 1))))
-    #target_h = np.hstack((target, np.ones((target.shape[0], 1)))).T
+    # unused: target_h = np.hstack((target, np.ones((target.shape[0], 1)))).T
 
     # init R as identity, t as zero
     R = np.eye(D, dtype='float64')
@@ -49,7 +49,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
     T = homogenize_transformation(R, t)
     transformed_target = target
 
-    centroid_target = np.mean(target, axis=0)
+    # centroid_target = np.mean(target, axis=0)
     # centroid_source = np.mean(source, axis=0)
 
     # Build index beforehand for faster querying
@@ -64,7 +64,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
         rms = rms_new
 
         # Rotate and translate the target using homogeneous coordinates
-        #transformed_target = np.dot(T, target_h).T[:, :D]
+        # unused: transformed_target = np.dot(T, target_h).T[:, :D]
         transformed_target = np.dot(R, transformed_target.T).T + t
         centroid_transformed_target = np.mean(transformed_target, axis=0)
 

@@ -4,6 +4,26 @@ from pyflann import FLANN
 import sys
 
 
+def homogenize_transformation(R, t):
+    '''
+    Create a homogeneous transformation matrix given a rotation and
+    translation.
+    '''
+    T = np.hstack((R, t.T))
+    T = np.vstack((T, np.array([0 for i in xrange(len(R))] + [1])))
+    return T
+
+
+def dehomogenize_transformation(T):
+    '''
+    Derive R and t from a homogeneous transformation matrix.
+    '''
+    size = T.shape[0] - 1
+    R = T[:size, :size]
+    t = T[:size, size]
+    return R, t
+
+
 def icp(source, target, D, debug=0, epsilon=0.00001):
     '''
     Perform ICP for two arrays containing points. Note that these
@@ -21,9 +41,13 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
     N = source.size
     flann = FLANN()
 
+    # source_h = np.hstack((source, np.ones((source.shape[0], 1))))
+    target_h = np.hstack((target, np.ones((target.shape[0], 1))))
+
     # init R as identity, t as zero
     R = np.eye(D, dtype='float64')
     t = np.zeros((1, D), dtype='float64')
+    T = homogenize_transformation(R, t)
 
     centroid_target = np.mean(target, axis=0)
     # centroid_source = np.mean(source, axis=0)
@@ -41,11 +65,13 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
             sys.stdout.write("\rRMS: {}".format(rms))
             sys.stdout.flush()
             if debug > 1:
-                sys.stdout.write("\nRotation:\n{}\n".format(R))
+                sys.stdout.write("\nTransformation:\n{}\n".format(T))
                 sys.stdout.flush()
 
-        # Rotate and translate the target
-        transformed_target = np.dot(R, target.T).T + t
+        # Rotate and translate the target using homogeneous coordinates
+        transformed_target = np.dot(T, target_h.T).T[:, :D]
+        # transformed_target = np.dot(R, target.T).T + t
+
         centroid_transformed_target = np.mean(transformed_target, axis=0)
 
         # Use flann to find nearest neighbours. Note that because of index it
@@ -75,8 +101,10 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
         d = np.linalg.det(np.dot(v, u.T))
         sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
         R = np.dot(np.dot(v.T, sign_matrix), u.T)
-
         t[0, :] = np.dot(R, -centroid_target) + centroid_selected_source
+
+        # Combine transformations so far with new found R and t
+        T = np.dot(T, homogenize_transformation(R, t))
 
         if debug > 2:
             try:
@@ -88,6 +116,9 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
             except KeyboardInterrupt:
                 print("")
                 sys.exit(0)
+
+    # Unpack the built transformation matrix
+    R, t = dehomogenize_transformation(T)
     return R, t, rms
 
 

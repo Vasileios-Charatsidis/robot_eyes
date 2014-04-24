@@ -38,16 +38,16 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
     In other words: Each new point gets matched to an old point. This is
     quite intuitive, as the set of source points may be (much) larger.
     '''
-    N = source.size
     flann = FLANN()
 
     # source_h = np.hstack((source, np.ones((source.shape[0], 1))))
-    target_h = np.hstack((target, np.ones((target.shape[0], 1))))
+    #target_h = np.hstack((target, np.ones((target.shape[0], 1)))).T
 
     # init R as identity, t as zero
     R = np.eye(D, dtype='float64')
     t = np.zeros((1, D), dtype='float64')
     T = homogenize_transformation(R, t)
+    transformed_target = target
 
     centroid_target = np.mean(target, axis=0)
     # centroid_source = np.mean(source, axis=0)
@@ -56,22 +56,16 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
     flann.build_index(source, algorithm='kdtree', trees=10)
 
     # Initialize rms to bs values
-    rms = 1000
+    rms = 2
     rms_new = 1
 
     while True:
+        # Update root mean squared error
         rms = rms_new
-        if debug > 0:
-            sys.stdout.write("\rRMS: {}".format(rms))
-            sys.stdout.flush()
-            if debug > 1:
-                sys.stdout.write("\nTransformation:\n{}\n".format(T))
-                sys.stdout.flush()
 
         # Rotate and translate the target using homogeneous coordinates
-        transformed_target = np.dot(T, target_h.T).T[:, :D]
-        # transformed_target = np.dot(R, target.T).T + t
-
+        #transformed_target = np.dot(T, target_h).T[:, :D]
+        transformed_target = np.dot(R, transformed_target.T).T + t
         centroid_transformed_target = np.mean(transformed_target, axis=0)
 
         # Use flann to find nearest neighbours. Note that because of index it
@@ -80,7 +74,18 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
                                         checks=120)
 
         # Compute new RMS
-        rms_new = math.sqrt(sum(dists) / float(N))
+        rms_new = math.sqrt(sum(dists) / float(len(dists)))
+
+        # Give feedback if necessary
+        if debug > 0:
+            sys.stdout.write("\rRMS: {}".format(rms_new))
+            sys.stdout.flush()
+            if debug > 1:
+                sys.stdout.write("\nTransformation:\n{}\n".format(T))
+                sys.stdout.flush()
+        assert rms > rms_new, "RMS was not minimized?"
+
+        # Check threshold
         if rms - rms_new < epsilon:
             break
 
@@ -97,13 +102,16 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
         # u . S . v = correlation =
         # V . S . W.T
 
+        # TODO needed?
         # ensure righthandedness coordinate system and calculate R
-        d = np.linalg.det(np.dot(v, u.T))
-        sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
-        R = np.dot(np.dot(v.T, sign_matrix), u.T)
-        t[0, :] = np.dot(R, -centroid_target) + centroid_selected_source
+        # d = np.linalg.det(np.dot(v, u.T))
+        # sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
+        # R = np.dot(np.dot(v.T, sign_matrix), u.T)
+        t[0, :] = np.dot(R, -centroid_transformed_target) + \
+            centroid_selected_source
 
         # Combine transformations so far with new found R and t
+        # Note: Latest transformation should be on the inside of the equation
         T = np.dot(T, homogenize_transformation(R, t))
 
         if debug > 2:
@@ -119,7 +127,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
 
     # Unpack the built transformation matrix
     R, t = dehomogenize_transformation(T)
-    return R, t, rms
+    return R, t, rms_new
 
 
 def rotation_matrix(axis, theta):

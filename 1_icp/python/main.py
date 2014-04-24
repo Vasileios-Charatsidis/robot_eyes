@@ -39,6 +39,7 @@ def main(input_dir, method, maximum, subsample_size, debug):
                             f.endswith('normal.pcd')))
     if debug > 0:
         print "Using method '{}' for merging.".format(method)
+        print "Subsampling {}% of data".format(subsample_size*100)
         now = time.time()
 
     merged = merge(pcd_files, method, maximum, subsample_size, debug)
@@ -91,7 +92,8 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
             break
 
         f2_all = readpcd(pcd_file)
-        f2 = subsample(f2_all, subsample_size)
+        f2 = subsample(f2_all, subsample_size) if \
+            subsample_size < 1 else f2_all
 
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
@@ -99,13 +101,13 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         elif method == 'merge_during':
             R, t, rms_subsample = icp.icp(merged, f2, D=3, debug=debug)
 
-        # Compute rms for all
-        rms = compute_rms(f1, f2)
-        if debug > 0:
-            print "\rRMS for the whole scene:", rms
-
         # Transform f2 to merged given R and t
         transformed_f2 = np.dot(R, f2_all.T).T + t
+        # Compute rms for this scene transitions, for the whole set
+        rms = compute_rms(merged, transformed_f2)
+
+        if debug > 0:
+            print "\rRMS for the whole scene:", rms
 
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f2))
@@ -116,9 +118,10 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
 
 
 def subsample(vectors, proportion=.15):
-    """Return a view of a matrix representing a random subsample of input
+    '''
+    Return a view of a matrix representing a random subsample of input
     vectors. Note that the original matrix is shuffled.
-    """
+    '''
     l = len(vectors)
     assert l > 2
     np.random.shuffle(vectors)

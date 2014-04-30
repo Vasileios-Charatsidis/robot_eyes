@@ -68,9 +68,7 @@ def iter_pcds(file_names, subsample_size, max_scenes):
             break
 
         all = readpcd(file_name)
-        sample = subsample(all, subsample_size) if \
-            subsample_size < 1 else all
-
+        sample = subsample(all, subsample_size) if subsample_size < 1 else all
         yield file_id, sample, all
 
 
@@ -95,7 +93,8 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     # Initialize merged as the points in the first frame
     merged = f1    # Is by reference, but f1 is never altered so that's okay
 
-    for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size, max_scenes):
+    for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size,
+                                         max_scenes):
         if debug > 0:
             print "Estimating R, t from {} to {}".format(file_id, file_id + 1)
 
@@ -143,25 +142,25 @@ if __name__ == "__main__":
         epilog="...")
     # Location args
     arg_parser.add_argument('data_dir', help='Data directory')
-    arg_parser.add_argument('merge_method',
+    arg_parser.add_argument('merge_method', default='merge_during', nargs='?',
                             choices=('merge_after', 'merge_during'),
                             help="Choose whether merges take place " +
                             "after or during estimation")
     # Optional args
-    arg_parser.add_argument('-max', '--maximum', type=int, default=2,
+    arg_parser.add_argument('-m', '--max', type=int, default=2,
                             help="Maximum number of scenes to read")
     arg_parser.add_argument('-s', '--subsample', type=float, default=1.,
                             help="The proportion of points to sample")
     arg_parser.add_argument('-d', '--debug', type=int,
                             default=0, help="Set debug level, " +
                             "0: silent, 1: verbose, 2: very verbose")
-    arg_parser.add_argument('-nv', '--no-visualization', action='store_true',
+    arg_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display the visualization")
     args = arg_parser.parse_args()
 
     name = main(input_dir=args.data_dir,
                 method=args.merge_method,
-                maximum=args.maximum,
+                maximum=args.max,
                 subsample_size=args.subsample,
                 debug=args.debug,
                 )

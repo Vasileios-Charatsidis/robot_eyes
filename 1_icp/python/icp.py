@@ -104,9 +104,9 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
 
         # TODO needed?
         # ensure righthandedness coordinate system and calculate R
-        # d = np.linalg.det(np.dot(v, u.T))
-        # sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
-        # R = np.dot(np.dot(v.T, sign_matrix), u.T)
+        d = np.linalg.det(np.dot(v, u.T))
+        sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
+        R = np.dot(np.dot(v.T, sign_matrix), u.T)
         t[0, :] = np.dot(R, -centroid_transformed_target) + \
             centroid_selected_source
 

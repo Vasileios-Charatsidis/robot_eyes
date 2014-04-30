@@ -10,7 +10,7 @@ import cv
 # 3. Get a set of supposed matches
 # 4. Estimate fundamental matrix
 
-def fundamental(matches):
+def fundamental(matches1, matches2):
     #A = np.array([[match[0][0] * match[1][0],
     #               match[0][0] * match[1][1],
     #               match[0][0],
@@ -20,7 +20,7 @@ def fundamental(matches):
     #               match[1][1],
     #               1] for match in matches])
 
-    A = np.tile(matches[0], (1, 3)) * np.repeat(matches[1], 3, 1)
+    A = np.tile(matches1, (1, 3)) * np.repeat(matches2, 3, 1)
 
     U, D, V = np.linalg.svd(A)
 

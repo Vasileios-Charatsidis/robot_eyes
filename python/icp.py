@@ -97,8 +97,6 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
         # We find this case some times, but are not sure if it should be
         # possible
         # assert rms > rms_new, "RMS was not minimized?"
-        if not rms > rms_new:
-            return R, t, rms
 
         # Check threshold
         if rms - rms_new < epsilon:

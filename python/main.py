@@ -7,8 +7,6 @@ import pcl
 import numpy as np
 import subprocess
 import time
-import math
-from pyflann import FLANN
 
 
 def readpcd(name):
@@ -17,48 +15,15 @@ def readpcd(name):
     return filter_vecs(np.array(p.to_array(), dtype='float64'))
 
 
-def filter_vecs(vectors, distance=1):
-    """Remove all points that are more distant than the given distance."""
-    return np.array([v for v in vectors if not v[-1] > distance])
-
-
 def writepcd(name, array):
     p = pcl.PointCloud()
     p.from_array(np.array(array, dtype='float32'))
     p.to_file(name)
 
 
-def main(input_dir, method, maximum, subsample_size, debug):
-    '''
-    Responsible for collecting pcd files from the given directory,
-    and calling ICP according to the selected method.
-    '''
-    pcd_files = sorted(list(os.path.join(input_dir, f)
-                            for f in os.listdir(input_dir)
-                            if f.endswith('.pcd') and not
-                            f.endswith('normal.pcd')))
-    if debug > 0:
-        print "Using method '{}' for merging.".format(method)
-        print "Subsampling {}% of data".format(subsample_size*100)
-        now = time.time()
-
-    merged = merge(pcd_files, method, maximum, subsample_size, debug)
-    if debug > 0:
-        print "Parsed {} files in {} seconds.".format(maximum,
-                                                      time.time() - now)
-    name = "merged.pcd"
-    writepcd(name, merged)
-    return name
-
-
-def compute_rms(source, target):
-    '''
-    Make a single call to FLANN rms.
-    '''
-    flann = FLANN()
-    results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
-                              checks=120, num_neighbors=1)
-    return math.sqrt(sum(dists) / float(len(dists)))
+def filter_vecs(vectors, distance=1):
+    """Remove all points that are more distant than the given distance."""
+    return np.array([v for v in vectors if not v[-1] > distance])
 
 
 def iter_pcds(file_names, subsample_size, max_scenes):
@@ -108,7 +73,7 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         transformed_f2 = np.dot(R, f2_all.T).T + t
         # Compute rms for this scene transitions, for the whole set
         if subsample_size < 1:
-            rms = compute_rms(merged, transformed_f2)
+            rms = icp.compute_rms(merged, transformed_f2)
         else:
             rms = rms_subsample
 
@@ -135,37 +100,29 @@ def subsample(vectors, proportion=.15):
     return vectors[:num]
 
 
-if __name__ == "__main__":
+def icp_main(args):
+    '''
+    Responsible for collecting pcd files from the given directory,
+    and calling ICP according to the selected method.
+    '''
+    pcd_files = sorted(list(os.path.join(args.data_dir, f)
+                            for f in os.listdir(args.data_dir)
+                            if f.endswith('.pcd') and not
+                            f.endswith('normal.pcd')))
+    if args.verbosity > 0:
+        print "Using method '{}' for merging.".format(args.merge_method)
+        print "Subsampling {}% of data".format(args.subsample*100)
+        now = time.time()
 
-    arg_parser = argparse.ArgumentParser(
-        description="Implementation of ICP.",
-        epilog="...")
-    # Location args
-    arg_parser.add_argument('data_dir', help='Data directory')
-    arg_parser.add_argument('merge_method', default='merge_during', nargs='?',
-                            choices=('merge_after', 'merge_during'),
-                            help="Choose whether merges take place " +
-                            "after or during estimation")
-    # Optional args
-    arg_parser.add_argument('-m', '--max', type=int, default=2,
-                            help="Maximum number of scenes to read")
-    arg_parser.add_argument('-s', '--subsample', type=float, default=1.,
-                            help="The proportion of points to sample")
-    arg_parser.add_argument('-d', '--debug', type=int,
-                            default=0, help="Set debug level, " +
-                            "0: silent, 1: verbose, 2: very verbose")
-    arg_parser.add_argument('-n', '--no-visualization', action='store_true',
-                            help="Don't display the visualization")
-    arg_parser.add_argument('-k', '--keep-file',
-                            help="Save the point cloud file")
-    args = arg_parser.parse_args()
+    merged = merge(pcd_files, args.merge_method, args.max, args.subsample,
+                   debug=args.verbosity)
+    if args.verbosity > 0:
+        print "Parsed {} files in {} seconds.".format(args.max,
+                                                      time.time() - now)
+    # Currently hardcoded, TODO make argument?
+    name = "merged.pcd"
+    writepcd(name, merged)
 
-    name = main(input_dir=args.data_dir,
-                method=args.merge_method,
-                maximum=args.max,
-                subsample_size=args.subsample,
-                debug=args.debug,
-                )
     if not args.no_visualization:
         print "Opening pclviewer to display results..."
         subprocess.Popen(["pcl_viewer", name],
@@ -173,3 +130,57 @@ if __name__ == "__main__":
 
     if not args.keep_file:
         subprocess.call(["rm", name])
+
+
+def epi_main(args):
+    '''
+    Call necessary functions for fundamental matrix estimation
+    given the correct arguments.
+    '''
+    pass
+
+
+if __name__ == "__main__":
+    arg_parser = argparse.ArgumentParser(
+        description="Implementation of ICP.",
+        epilog="...")
+    subparsers = arg_parser.add_subparsers(help='Method to execute:')
+
+    # All methods require a data folder containing pcd/img files
+    arg_parser.add_argument('-v', '--verbosity', type=int,
+                            default=0, help="Set verbosity level, " +
+                            "0: silent, 1: verbose, 2: very verbose")
+
+    # Subparser that handles ICP arguments
+    icp_parser = subparsers.add_parser('icp', help='Iterative closest point' +
+                                       ' (assignment 1)')
+    icp_parser.set_defaults(func=icp_main)
+    # Location args
+    icp_parser.add_argument('data_dir',
+                            help='Data directory containing pcd files')
+    icp_parser.add_argument('merge_method', default='merge_during', nargs='?',
+                            choices=('merge_after', 'merge_during'),
+                            help="Choose whether merges take place " +
+                            "after or during estimation")
+    # Optional args
+    icp_parser.add_argument('-m', '--max', type=int, default=2,
+                            help="Maximum number of scenes to read")
+    icp_parser.add_argument('-s', '--subsample', type=float, default=1.,
+                            help="The proportion of points to sample")
+    icp_parser.add_argument('-n', '--no-visualization', action='store_true',
+                            help="Don't display resulting pointcloud")
+    icp_parser.add_argument('-k', '--keep-file',
+                            help="Save the point cloud file")
+
+    # Subparser that handles Epipolar geometry args
+    epi_parser = subparsers.add_parser('epi', help='2. Epipolar geometry' +
+                                       ' and fundamental matrix estimation' +
+                                       ' (Assignment 2)')
+    epi_parser.set_defaults(func=epi_main)
+    epi_parser.add_argument('data_dir',
+                            help='Data directory containing images')
+    epi_parser.add_argument('-m', '--max', type=int, default=2,
+                            help="Maximum number of images to read")
+
+    args = arg_parser.parse_args()
+    args.func(args)

@@ -24,6 +24,16 @@ def dehomogenize_transformation(T):
     return R, t
 
 
+def compute_rms(source, target):
+    '''
+    Make a single call to FLANN rms.
+    '''
+    flann = FLANN()
+    results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
+                              checks=120, num_neighbors=1)
+    return math.sqrt(sum(dists) / float(len(dists)))
+
+
 def icp(source, target, D, debug=0, epsilon=0.00001):
     '''
     Perform ICP for two arrays containing points. Note that these

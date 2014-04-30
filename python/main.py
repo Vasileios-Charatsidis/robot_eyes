@@ -28,8 +28,8 @@ def icp_main(args):
     if args.verbosity > 0:
         print "Parsed {} files in {} seconds.".format(args.max,
                                                       time.time() - now)
-    # Currently hardcoded, TODO make argument?
-    name = "merged.pcd"
+
+    name = args.output_file
     icp.writepcd(name, merged)
 
     if not args.no_visualization:
@@ -88,7 +88,7 @@ if __name__ == "__main__":
                             help="The proportion of points to sample")
     icp_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display resulting pointcloud")
-    icp_parser.add_argument('-k', '--keep-file',
+    icp_parser.add_argument('-o', '--output-file', default= "merged.pcd",
                             help="Save the point cloud file")
 
     # Subparser that handles Epipolar geometry args

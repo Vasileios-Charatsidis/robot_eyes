@@ -156,6 +156,8 @@ if __name__ == "__main__":
                             "0: silent, 1: verbose, 2: very verbose")
     arg_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display the visualization")
+    arg_parser.add_argument('-k', '--keep-file',
+                            help="Save the point cloud file")
     args = arg_parser.parse_args()
 
     name = main(input_dir=args.data_dir,
@@ -168,3 +170,6 @@ if __name__ == "__main__":
         print "Opening pclviewer to display results..."
         subprocess.Popen(["pcl_viewer", name],
                          stdout=open(os.devnull, 'w')).wait()
+
+    if not args.keep_file:
+        subprocess.call(["rm", name])

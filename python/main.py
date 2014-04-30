@@ -50,14 +50,17 @@ def epi_main(args):
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.png')))
     if args.verbosity > 0:
-        print "Performing Iterative closest point!"
+        print "Estimating fundamental matrix!"
         now = time.time()
 
-    epi.dostuff(img_files, )
+    epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
+                   args.verbosity)
+    # TODO epi.chaining ?
 
     if args.verbosity > 0:
         print "Parsed {} files in {} seconds.".format(args.max,
                                                       time.time() - now)
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(
@@ -92,12 +95,17 @@ if __name__ == "__main__":
                             help="Save the point cloud file")
 
     # Subparser that handles Epipolar geometry args
-    epi_parser = subparsers.add_parser('epi', help='2. Epipolar geometry' +
+    epi_parser = subparsers.add_parser('epi', help='Epipolar geometry' +
                                        ' and fundamental matrix estimation' +
                                        ' (Assignment 2)')
     epi_parser.set_defaults(func=epi_main)
     epi_parser.add_argument('data_dir',
                             help='Data directory containing images')
+    epi_parser.add_argument('-n', '--normalized', action='store_true',
+                            help="Use normalized eightpoint")
+    epi_parser.add_argument('-r', '--ransac-iterations', type=int, default=0,
+                            help="Number of RANSAC iterations (default: " +
+                            "do not use RANSAC")
     epi_parser.add_argument('-m', '--max', type=int, default=2,
                             help="Maximum number of images to read")
 

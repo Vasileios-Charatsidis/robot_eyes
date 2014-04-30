@@ -61,6 +61,19 @@ def compute_rms(source, target):
     return math.sqrt(sum(dists) / float(len(dists)))
 
 
+def iter_pcds(file_names, subsample_size, max_scenes):
+    for file_id, file_name in enumerate(file_names):
+        # max number of scenes reached
+        if file_id == max_scenes:
+            break
+
+        all = readpcd(file_name)
+        sample = subsample(all, subsample_size) if \
+            subsample_size < 1 else all
+
+        yield file_id, sample, all
+
+
 def merge(pcd_files, method, max_scenes, subsample_size, debug):
     '''
     Estimate rotation translation for every consecutive frame. Use
@@ -82,18 +95,9 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     # Initialize merged as the points in the first frame
     merged = f1    # Is by reference, but f1 is never altered so that's okay
 
-    for file_id, pcd_file in enumerate(pcd_files[1:]):
+    for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size, max_scenes):
         if debug > 0:
-            print "Estimating R, t from {} to {}".format(
-                pcd_files[file_id], pcd_file)
-
-        # max number of scenes reached
-        if file_id == max_scenes:
-            break
-
-        f2_all = readpcd(pcd_file)
-        f2 = subsample(f2_all, subsample_size) if \
-            subsample_size < 1 else f2_all
+            print "Estimating R, t from {} to {}".format(file_id, file_id + 1)
 
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':

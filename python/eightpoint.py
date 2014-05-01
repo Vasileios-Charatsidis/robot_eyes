@@ -1,4 +1,6 @@
 import numpy as np
+from itertools import izip
+import math
 import cv2
 
 
@@ -17,10 +19,39 @@ def filter_matches(kp1, kp2, matches, ratio=0.75):
     """
     Filter matches based on the notion that at the second closest match
     should be at least at <ratio> distance from the best match.
+
+    Returns two vectors, with on each row corresponding keypoints.
     """
-    return [(kp1[m[0].queryIdx], kp2[m[0].trainIdx])
-            for m in matches if len(m) >= 2
-            and m[0].distance < ratio * m[1].distance]
+    m1, m2 = [], []
+    for m in matches:
+        if len(m) >= 2 and m[0].distance < ratio * m[1].distance:
+            m1.append(list(kp1[m[0].queryIdx].pt) + [1])
+            m2.append(list(kp2[m[0].trainIdx].pt) + [1])
+    return np.array(m1), np.array(m2)
+
+
+def normalize(points, verbosity):
+    """
+    Normalize a given set of point.
+    """
+    mean = np.mean(points[:, :2], axis=0)
+    d = np.mean(np.sqrt(np.sum(np.power(points[:, :2] - mean, 2),
+                               axis=1)
+        ))
+    sqrt2d = math.sqrt(2) / float(d)
+    T = np.array([[sqrt2d, 0,      -mean[0] * sqrt2d],
+                  [0,      sqrt2d, -mean[1] * sqrt2d],
+                  [0,      0,      1]])
+    normalized_points = np.dot(T, points.T).T
+
+    if verbosity > 1:
+        print "Normalized points set, centroid is now {}".format(
+            np.mean(normalized_points, axis=0)) + \
+            ", should be close to zero."
+        print "Mean distance to centroid is {}, should be sqrt(2)".format(
+            np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
+                                   axis=1))))
+    return normalized_points
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
@@ -54,19 +85,29 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         # Use flann to find best matches
         flann = cv2.FlannBasedMatcher(index_params, search_params)
         matches = flann.knnMatch(des1, des2, k=2)
-        # Get set of tuples of keypoints that match
+        # Get arrays of keypoints that match (and filter out bad ones)
+        matches1, matches2 = filter_matches(kp1, kp2, matches, ratio=0.5)
         # TODO make ratio arg
-        matches = filter_matches(kp1, kp2, matches, ratio=0.5)
         if verbosity > 1:
-            drawmatches(img1, img2, matches, verbosity)
+            drawmatches(img1, img2, matches1, matches2, verbosity)
 
-        # Use some metric to reduce bad matches
+        if normalized:
+            matches1 = normalize(matches1, verbosity)
+            matches2 = normalize(matches2, verbosity)
+            raw_input()
+
+        # Compute fundamental matrix!
+        if not ransac_iterations:
+            F = fundamental(matches1, matches2)
+        else:
+            F = fundamental_ransac(*izip(matches))
+        print F
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
 
 
-def drawmatches(img1, img2, matches, verbosity=0):
+def drawmatches(img1, img2, kp1, kp2, verbosity=0):
     """
     Since drawMatches is not yet included in opencv 2.4.9, we
     added a simple function that visualises matches in different
@@ -91,16 +132,16 @@ def drawmatches(img1, img2, matches, verbosity=0):
     view[:, :, 1] = view[:, :, 0]
     view[:, :, 2] = view[:, :, 0]
 
-    for kp1, kp2 in matches:
+    for p1, p2 in izip(kp1, kp2):
         # draw the keypoints
         # print m.queryIdx, m.trainIdx, m.distance
         color = tuple([np.random.randint(0, 255)
                        for _ in xrange(3)])
         cv2.line(view,
-                 (int(kp1.pt[0]),
-                  int(kp1.pt[1])),
-                 (int(kp2.pt[0] + w1),
-                  int(kp2.pt[1])),
+                 (int(p1[0]),
+                  int(p1[1])),
+                 (int(p2[0] + w1),
+                  int(p2[1])),
                  color)
     # Resize for easy display
     view = cv2.resize(view, (0, 0), fx=0.25, fy=0.25)
@@ -112,6 +153,10 @@ def drawmatches(img1, img2, matches, verbosity=0):
 # 2. Characterize local appearance of the regions around interest points
 # 3. Get a set of supposed matches
 # 4. Estimate fundamental matrix
+
+def fundamental_ransac():
+    pass
+
 
 def fundamental(matches1, matches2):
     """

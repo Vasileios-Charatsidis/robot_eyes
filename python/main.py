@@ -51,8 +51,12 @@ def epi_main(args):
                             if f.endswith('.png')))
     if args.verbosity > 0:
         print "Estimating fundamental matrix!"
+        print "Using {} eightpoint algorithm".format("standard" if
+                                                     not args.normalized
+                                                     else "normalized")
+        if args.ransac_iterations:
+            print "Using {} RANSAC iterations".format(args.ransac_iterations)
         now = time.time()
-
     epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
                    args.verbosity)
     # TODO epi.chaining ?

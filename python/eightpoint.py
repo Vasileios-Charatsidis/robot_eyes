@@ -4,54 +4,27 @@ import math
 import cv2
 
 
-def read_and_crop(img_name, min_height, max_height, min_width, max_width,
-                  grayscale=True):
-    """"""
-    img = cv2.imread(img_name)
-    # TODO enable 1D image croppin
-    img = img[min_height:max_height, min_width:max_width, :]
-    if grayscale:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return img
-
-
-def filter_matches(kp1, kp2, matches, ratio=0.75):
+def epipole(fundamental):
     """
-    Filter matches based on the notion that at the second closest match
-    should be at least at <ratio> distance from the best match.
+    Calculate the epipoles e, e' given a fundemental matrix.
 
-    Returns two vectors, with on each row corresponding keypoints.
+    We know that
+    F e = 0
+    F^T e' = 0
+
+    so we can use svd to find the answer(s)
     """
-    m1, m2 = [], []
-    for m in matches:
-        if len(m) >= 2 and m[0].distance < ratio * m[1].distance:
-            m1.append(list(kp1[m[0].queryIdx].pt) + [1])
-            m2.append(list(kp2[m[0].trainIdx].pt) + [1])
-    return np.array(m1), np.array(m2)
+    _, _, v = np.linalg.svd(fundamental)
+    _, _, v_prime = np.linalg.svd(fundamental.T)
+    return v[:, -1], v_prime[:, -1]
 
 
-def normalize(points, verbosity):
+def estimate_camera_matrices(img_files, normalized, ransac_iterations,
+                             verbosity):
     """
-    Normalize a given set of point.
-    """
-    mean = np.mean(points[:, :2], axis=0)
-    d = np.mean(np.sqrt(np.sum(np.power(points[:, :2] - mean, 2),
-                               axis=1)
-        ))
-    sqrt2d = math.sqrt(2) / float(d)
-    T = np.array([[sqrt2d, 0,      -mean[0] * sqrt2d],
-                  [0,      sqrt2d, -mean[1] * sqrt2d],
-                  [0,      0,      1]])
-    normalized_points = np.dot(T, points.T).T
 
-    if verbosity > 1:
-        print "Normalized points set, centroid is now {}".format(
-            np.mean(normalized_points, axis=0)) + \
-            ", should be close to zero."
-        print "Mean distance to centroid is {}, should be sqrt(2)".format(
-            np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
-                                   axis=1))))
-    return normalized_points
+    """
+    # TODO call eightpoint correctly.
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
@@ -92,19 +65,72 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
             drawmatches(img1, img2, matches1, matches2, verbosity)
 
         if normalized:
-            matches1 = normalize(matches1, verbosity)
-            matches2 = normalize(matches2, verbosity)
-            raw_input()
+            matches1, T1 = normalize(matches1, verbosity)
+            matches2, T2 = normalize(matches2, verbosity)
 
         # Compute fundamental matrix!
         if not ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
             F = fundamental_ransac(*izip(matches))
+
+        if normalized:
+            F = np.dot(T2.T, np.dot(F, T1))
+
         print F
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
+
+def read_and_crop(img_name, min_height, max_height, min_width, max_width,
+                  grayscale=True):
+    """"""
+    img = cv2.imread(img_name)
+    # TODO enable 1D image croppin
+    img = img[min_height:max_height, min_width:max_width, :]
+    if grayscale:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return img
+
+
+def filter_matches(kp1, kp2, matches, ratio=0.75):
+    """
+    Filter matches based on the notion that at the second closest match
+    should be at least at <ratio> distance from the best match.
+
+    Returns two vectors, with on each row corresponding keypoints.
+    """
+    m1, m2 = [], []
+    for m in matches:
+        if len(m) >= 2 and m[0].distance < ratio * m[1].distance:
+            m1.append(list(kp1[m[0].queryIdx].pt) + [1])
+            m2.append(list(kp2[m[0].trainIdx].pt) + [1])
+    return np.array(m1), np.array(m2)
+
+
+def normalize(points, verbosity):
+    """
+    Normalize a given set of point.
+    """
+    mean = np.mean(points[:, :2], axis=0)
+    d = np.mean(np.sqrt(np.sum(np.power(points[:, :2] - mean, 2),
+                               axis=1)))
+    sqrt2d = math.sqrt(2) / float(d)
+    T = np.array([[sqrt2d, 0,      -mean[0] * sqrt2d],
+                  [0,      sqrt2d, -mean[1] * sqrt2d],
+                  [0,      0,      1]])
+    normalized_points = np.dot(T, points.T).T
+
+    if verbosity > 1:
+        print "Normalized points set, centroid is now {}".format(
+            np.mean(normalized_points, axis=0)) + \
+            ", should be close to zero."
+        print "Mean distance to centroid is {}, should be sqrt(2)".format(
+            np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
+                                   axis=1))))
+    return normalized_points
+
+
 
 
 def drawmatches(img1, img2, kp1, kp2, verbosity=0):
@@ -154,7 +180,8 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
 # 3. Get a set of supposed matches
 # 4. Estimate fundamental matrix
 
-def fundamental_ransac():
+def fundamental_ransac(matches1, matches2, ransac_iterations):
+    """Use RANSAC to find the best fundamental matrix"""
     pass
 
 
@@ -166,20 +193,23 @@ def fundamental(matches1, matches2):
     A = np.tile(matches1, (1, 3)) * np.repeat(matches2, 3, 1)
 
     U, D, V = np.linalg.svd(A)
-    # Take columns/rows of interest
-    Uf = U[:, 0:3]
-    Df = np.diag(D[0:3])
-    Vf = V[0:3]
+    # Take columns/rows of interest TODO find out if this is needed?
+    # Uf = U[:, 0:3]
+    # Df = np.diag(D[0:3])
+    # Vf = V[0:3]
+
+    # entries of F are in last column of v
+    F = np.reshape(V[:, -1], (3, 3))
 
     # TODO find out why this is often nonsingular, and what the impact is.
     # It says we have to do this in the assignment, but can not find the
     # reference mentioned.
-    F = np.dot(Uf, np.dot(Df, Vf))
     Uf, Df, Vf = np.linalg.svd(F)
 
     # Set smallest singular value to zero
-    Df[3, 3] = 0
+    Df = np.diag(Df)
+    Df[2, 2] = 0
     # Recompute F
-    F = Uf * Df * Vf
+    F = np.dot(Uf, np.dot(Df, Vf.T))
 
     return F

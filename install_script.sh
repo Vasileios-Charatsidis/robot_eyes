@@ -16,22 +16,22 @@ if [ ! -d downloads ]; then
 fi
 cd downloads/
 
-# Install Cython, needed for python-pcl
-sudo apt-get install cython
+# Install packages from default repos:
+# - Cython, needed for python-pcl
+# - Boost.Python, NumPy, Matplotlib, needed for pyvlfeat
+# - OpenCV for Python, for SIFT matching
+sudo apt-get -y install cython libboost-python-dev python-{numpy,matplotlib,opencv}
 
 # PointCloud Library (binaries for Linux found at http://www.pointclouds.org/downloads/linux.html)
 sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
 sudo apt-get update
-sudo apt-get install libpcl-all
+sudo apt-get -y install libpcl-all
 
 # python-pcl from https://github.com/strawlab/python-pcl/
 git clone git@github.com:strawlab/python-pcl.git
 cd python-pcl
 sudo python setup.py install
-cd ..
-
-# opencv for python (For sift matching)
-sudo apt-get install python-opencv
+cd .. # Back to downloads/
 
 # Latest version of FLANN with Python bindings, building from sources:
 wget www.cs.ubc.ca/research/flann/uploads/FLANN/flann-1.8.4-src.zip
@@ -43,4 +43,13 @@ make -j`nproc`
 cp ../src/python/pyflann/ -r ./src/python/
 cd src/python/
 sudo python setup.py install
-cd ../../../../
+cd ../../../ # Back to downloads/
+
+# Latest version of pyvlfeat
+wget https://pypi.python.org/packages/source/p/pyvlfeat/pyvlfeat-0.1.1a3.tar.gz
+tar xzf pyvlfeat-0.1.1a3.tar.gz
+cd pyvlfeat-0.1.1a3/
+# Recent Ubuntu version have a different -lboost_python to link to
+sed -i "s/-lboost_python-mt-py26/-lboost_python-py27/" setup.py 
+sudo python setup.py install
+cd ../ # Back to downloads/

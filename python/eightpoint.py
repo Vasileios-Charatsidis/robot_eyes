@@ -78,6 +78,8 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
             F = np.dot(T2.T, np.dot(F, T1))
 
         print F
+        e, e_prime = epipole(F)
+        print e_prime
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
@@ -200,14 +202,11 @@ def fundamental(matches1, matches2):
     # entries of F are in last column of v
     F = np.reshape(V[:, -1], (3, 3))
 
-    # TODO find out why this is often nonsingular, and what the impact is.
-    # It says we have to do this in the assignment, but can not find the
-    # reference mentioned.
     Uf, Df, Vf = np.linalg.svd(F)
 
     # Set smallest singular value to zero
     Df = np.diag(Df)
-    Df[2, 2] = 0
+    Df[2, 2] = 0  # Ensure non-singularity (Hartley & Zissermann p. 280)
     # Recompute F
     F = np.dot(Uf, np.dot(Df, Vf.T))
 

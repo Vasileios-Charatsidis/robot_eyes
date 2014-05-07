@@ -82,6 +82,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         # Update
         img1, kp1, des1 = img2, kp2, des2
 
+
 def read_and_crop(img_name, min_height, max_height, min_width, max_width,
                   grayscale=True):
     """"""
@@ -129,8 +130,6 @@ def normalize(points, verbosity):
             np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
                                    axis=1))))
     return normalized_points
-
-
 
 
 def drawmatches(img1, img2, kp1, kp2, verbosity=0):

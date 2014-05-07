@@ -57,6 +57,7 @@ def epi_main(args):
         if args.ransac_iterations:
             print "Using {} RANSAC iterations".format(args.ransac_iterations)
         now = time.time()
+
     epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
                    args.verbosity)
     # TODO epi.chaining ?

@@ -8,15 +8,17 @@ def filter_vecs(vectors, distance=1):
     return np.array([v for v in vectors if not v[-1] > distance])
 
 
-def subsample(vectors, proportion=.15):
+def subsample(vectors, proportion=.15, num=None):
     '''
     Return a view of a matrix representing a random subsample of input
     vectors. Note that the original matrix is shuffled.
     '''
-    l = len(vectors)
-    assert l > 2
     np.random.shuffle(vectors)
-    num = max(2, int(proportion * l))  # We can only match at least 2 points
+    if not num:
+        l = len(vectors)
+        assert l > 2
+        # We can only match at least 2 points
+        num = max(2, int(proportion * l))
     return vectors[:num]
 
 

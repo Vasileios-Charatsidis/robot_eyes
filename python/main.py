@@ -56,6 +56,7 @@ def epi_main(args):
     Call necessary functions for fundamental matrix estimation
     given the correct arguments.
     '''
+    data_set = args.data_dir.strip('/').split('/')[-1]
     img_files = sorted(list(os.path.join(args.data_dir, f)
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.png')))
@@ -70,7 +71,7 @@ def epi_main(args):
         now = time.time()
 
     epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
-                   args.verbosity)
+                   data_set, args.verbosity)
     # TODO epi.chaining ?
 
     if args.verbosity > 0:

@@ -29,7 +29,7 @@ def estimate_camera_matrices(img_files, normalized, ransac_iterations,
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
-               threshold=1e-3, verbosity=0):
+               threshold=1e-3, data_set="", verbosity=0):
     """
     Perform the eightpoint algorithm for a given set of images.
     Normalized is a boolean indicating whether we should use the
@@ -44,16 +44,18 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
     search_params = {'checks': 50}
 
     # For bear, crop image to 200:1400, 600:1800
-    bear_crop = [200, 1400, 600, 1800]
-    img1 = read_and_crop(img_files[0], *bear_crop, grayscale=True)
-    # For house, don't crop image? TODO
+    if data_set == "TeddyBear":
+        crop = [200, 1400, 600, 1800]
+    else:  # For house, don't crop image? TODO
+        crop = False
 
+    img1 = read_and_crop(img_files[0], crop, grayscale=True)
     # Compute keypoints
     kp1, des1 = sift.detectAndCompute(img1, None)
 
     for img2_name in img_files[1:]:
         # Read the next file
-        img2 = read_and_crop(img2_name, *bear_crop, grayscale=True)
+        img2 = read_and_crop(img2_name, crop, grayscale=True)
         kp2, des2 = sift.detectAndCompute(img2, None)
 
         # Use flann to find best matches
@@ -86,12 +88,13 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         img1, kp1, des1 = img2, kp2, des2
 
 
-def read_and_crop(img_name, min_height, max_height, min_width, max_width,
-                  grayscale=True):
+def read_and_crop(img_name, crop, grayscale=True):
     """"""
     img = cv2.imread(img_name)
-    # TODO enable 1D image croppin
-    img = img[min_height:max_height, min_width:max_width, :]
+    # TODO enable 1D image cropping
+    if crop:
+        min_height, max_height, min_width, max_width = crop
+        img = img[min_height:max_height, min_width:max_width, :]
     if grayscale:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return img

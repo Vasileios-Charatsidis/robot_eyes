@@ -4,10 +4,12 @@
 ## It has been designed with a Ubuntu install in mind.
 ##
 ## The script will install the following software:
-##   - Cython, from the default apt repository
+##   - Cython, Boost.Python, NumPy, Matplotlib, from the default apt repository
+##   - OpenCV 2.4.9 with Python bindings, from source
 ##   - pcl, from a personal package archive
 ##   - python-pcl, from source
 ##   - FLANN with Python bindings, from source
+##   - pyvlfeat, from source
 ##
 ## The necessary downloads will be placed in a subdirectory downloads/.
 
@@ -19,8 +21,17 @@ cd downloads/
 # Install packages from default repos:
 # - Cython, needed for python-pcl
 # - Boost.Python, NumPy, Matplotlib, needed for pyvlfeat
-# - OpenCV for Python, for SIFT matching
-sudo apt-get -y install cython libboost-python-dev python-{numpy,matplotlib,opencv}
+sudo apt-get -y install cython libboost-python-dev python-{numpy,matplotlib}
+
+# OpenCV 2.4.9 (source downloaded from official GitHub repository)
+wget https://github.com/Itseez/opencv/archive/2.4.9.tar.gz
+tar xzf 2.4.9.tar.gz
+mkdir opencv-2.4.9/build/
+cd opencv-2.4.9/build/
+cmake ..
+make -j`nproc`
+sudo make install
+cd ../.. # Back to downloads/
 
 # PointCloud Library (binaries for Linux found at http://www.pointclouds.org/downloads/linux.html)
 sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl

@@ -52,13 +52,21 @@ def dehomogenize_transformation(T):
     return R, t
 
 
-def compute_rms(source, target):
+def compute_rms(source, target, flann=None):
     '''
     Make a single call to FLANN rms.
+
+    If a flannobject with prebuilt index is given, use that,
+    otherwise, do a full search.
     '''
-    flann = FLANN()
-    results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
-                              checks=120, num_neighbors=1)
+    if flann:
+        results, dists = flann.nn_index(target, num_neighbors=1,
+                                        checks=120)
+
+    else:
+        flann = FLANN()
+        results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
+                                  checks=120, num_neighbors=1)
     return math.sqrt(sum(dists) / float(len(dists)))
 
 
@@ -85,19 +93,21 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size,
                                          max_scenes):
         if debug > 0:
-            print "Estimating R, t from {} to {}".format(file_id, file_id + 1)
+            print "Estimating R, t from {} to {}".format(file_id + 1, file_id)
 
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
-            R, t, rms_subsample = icp(f1, f2, D=3, debug=debug)
+            R, t, rms_subsample, flann_idx = \
+                icp(f1, f2, D=3, debug=debug)
         elif method == 'merge_during':
-            R, t, rms_subsample = icp(merged, f2, D=3, debug=debug)
+            R, t, rms_subsample, flann_idx = \
+                icp(merged, f2, D=3, debug=debug)
 
         # Transform f2 to merged given R and t
         transformed_f2 = np.dot(R, f2_all.T).T + t
         # Compute rms for this scene transitions, for the whole set
         if subsample_size < 1:
-            rms = compute_rms(merged, transformed_f2)
+            rms = compute_rms(merged, transformed_f2, flann_idx)
         else:
             rms = rms_subsample
 
@@ -218,7 +228,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
 
     # Unpack the built transformation matrix
     R, t = dehomogenize_transformation(T)
-    return R, t, rms_new
+    return R, t, rms_new, flann
 
 
 def rotation_matrix(axis, theta):

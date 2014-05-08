@@ -37,7 +37,7 @@ def icp_main(args):
         subprocess.Popen(["pcl_viewer", name],
                          stdout=open(os.devnull, 'w')).wait()
 
-    if not args.keep_file:
+    if not args.output_file:
         subprocess.call(["rm", name])
 
 

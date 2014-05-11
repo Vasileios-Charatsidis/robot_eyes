@@ -1,4 +1,5 @@
 import numpy as np
+import operator
 from itertools import izip
 import math
 import cv2
@@ -28,7 +29,7 @@ def estimate_camera_matrices(img_files, normalized, ransac_iterations,
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
-               verbosity=0):
+               threshold=1e-3, verbosity=0):
     """
     Perform the eightpoint algorithm for a given set of images.
     Normalized is a boolean indicating whether we should use the
@@ -72,14 +73,14 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         if not ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
-            F = fundamental_ransac(*izip(matches))
+            F = fundamental_ransac(matches1, matches2, ransac_iterations,
+                                   threshold)
 
         if normalized:
             F = np.dot(T2.T, np.dot(F, T1))
 
         print F
         e, e_prime = epipole(F)
-        print e_prime
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
@@ -131,7 +132,7 @@ def normalize(points, verbosity):
         print "Mean distance to centroid is {}, should be sqrt(2)".format(
             np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
                                    axis=1))))
-    return normalized_points
+    return normalized_points, T
 
 
 def drawmatches(img1, img2, kp1, kp2, verbosity=0):
@@ -181,9 +182,48 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
 # 3. Get a set of supposed matches
 # 4. Estimate fundamental matrix
 
-def fundamental_ransac(matches1, matches2, ransac_iterations):
+def fundamental_ransac(matches1, matches2, ransac_iterations,
+                       threshold):
     """Use RANSAC to find the best fundamental matrix"""
-    pass
+
+    # 1. Randomly sample matches, save in N x 8 matrix
+    random_indices = np.random.randint(0, len(matches1),
+                                       (ransac_iterations, 8))
+
+    # 2. Define some function that can evaluate each sample's F
+    def evaluate(indices, matches1, matches2, threshold=1e-3):
+        selected1 = matches1[indices]
+        selected2 = matches2[indices]
+        F = fundamental(selected1, selected2)
+
+        rest1 = matches1[[i for i in xrange(len(matches1))
+                         if not i in indices]]
+        rest2 = matches2[[i for i in xrange(len(matches1))
+                         if not i in indices]]
+        output = []
+        inliers = []
+        outliers = []
+        for p1, p2 in izip(rest1, rest2):
+            Fp1 = np.dot(F, p1)
+            # Calculate sampson distance
+            d = (np.dot(p2.T, Fp1) ** 2) /\
+                np.sum(np.power(Fp1, 2))
+            if d < threshold:
+                inliers.append((p1, p2))
+            else:
+                outliers.append((p1, p2))
+        return len(inliers), F
+
+    # 3. Feed it all to the parallel queue!
+    from parallel_queue import process_parallel
+    list_of_numinliers_and_fundamentals = \
+        process_parallel(random_indices, evaluate, num_processes=4,
+                         matches1=matches1, matches2=matches2,
+                         threshold=threshold,)
+
+    # 4. Based on evaluation function, now contains <len_inliers>, F
+    return sorted(list_of_numinliers_and_fundamentals,
+                  key=lambda tup : tup[0])[-1][1]
 
 
 def fundamental(matches1, matches2):

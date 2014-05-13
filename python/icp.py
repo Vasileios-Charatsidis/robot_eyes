@@ -20,7 +20,8 @@ def writepcd(name, array):
 
 def iter_pcds(file_names, subsample_size, max_scenes):
     """
-    Return an iterable of a subsample of all given pcd files.
+    Return an iterable of all pcd files, from which we
+    take a sample.
     """
     for file_id, file_name in enumerate(file_names):
         # max number of scenes reached
@@ -103,8 +104,13 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
             R, t, rms_subsample, flann_idx = \
                 icp(merged, f2, D=3, debug=debug)
 
-        # Transform f2 to merged given R and t
-        transformed_f2 = np.dot(R, f2_all.T).T + t
+        # DEPRECTATED: Transform f2 to merged given R and t
+        # transformed_f2 = np.dot(R, f2_all.T).T + t
+
+        # Transform merged towards f2!
+        transformed_f2 = f2
+        merged = np.dot(R.T, merged.T).T - t
+
         # Compute rms for this scene transitions, for the whole set
         if subsample_size < 1:
             rms = compute_rms(merged, transformed_f2, flann_idx)

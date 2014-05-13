@@ -91,25 +91,28 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     # Initialize merged as the points in the first frame
     merged = f1    # Is by reference, but f1 is never altered so that's okay
 
+    # Homogeneous transformation matrix
+    T_c = homogenize_transformation(np.eye(3), np.zeros((1,3)))
+
     for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size,
                                          max_scenes):
         if debug > 0:
             print "Estimating R, t from {} to {}".format(file_id + 1, file_id)
 
+        # Transform f2 by all previous transformations
+        R_c, t_c = dehomogenize_transformation(T_c)
+        f2 = np.dot(R_c, f2.T).T + t_c
+
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
-            R, t, rms_subsample, flann_idx = \
+            R, t, T, rms_subsample, flann_idx = \
                 icp(f1, f2, D=3, debug=debug)
         elif method == 'merge_during':
-            R, t, rms_subsample, flann_idx = \
+            R, t, T, rms_subsample, flann_idx = \
                 icp(merged, f2, D=3, debug=debug)
 
-        # DEPRECTATED: Transform f2 to merged given R and t
-        # transformed_f2 = np.dot(R, f2_all.T).T + t
-
-        # Transform merged towards f2!
-        transformed_f2 = f2
-        merged = np.dot(R.T, merged.T).T - t
+        # Transform f2 to merged given R and t
+        transformed_f2 = np.dot(R, f2_all.T).T + t
 
         # Compute rms for this scene transitions, for the whole set
         if subsample_size < 1:
@@ -123,12 +126,15 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f2))
 
+        # Calc cumulative transformation matrix for f2 -> 1 movement
+        T_c = np.dot(T, T_c)
+
         # Move to the next scene (not necessary for merge_during)
         f1 = f2
     return merged
 
 
-def icp(source, target, D, debug=0, epsilon=0.00001):
+def icp(source, target, D, debug=0, epsilon=0.000001):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -234,7 +240,7 @@ def icp(source, target, D, debug=0, epsilon=0.00001):
 
     # Unpack the built transformation matrix
     R, t = dehomogenize_transformation(T)
-    return R, t, rms_new, flann
+    return R, t, T, rms_new, flann
 
 
 def rotation_matrix(axis, theta):

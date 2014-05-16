@@ -1,11 +1,13 @@
 #!/usr/bin/env python2
 
 import argparse
-import icp
-import eightpoint as epi
 import os
 import subprocess
 import time
+
+import eightpoint as epi
+import icp
+import plotter
 
 
 def icp_main(args):
@@ -17,6 +19,14 @@ def icp_main(args):
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))
+
+    plot_folder = args.plot_folder
+    if None:
+        plotter.disable_plotter()
+    else:
+        plotter.enable_plotter()
+        plotter.output_folder(plot_folder)
+
     if args.verbosity > 0:
         print "Performing Iterative closest point!"
         print "Using method '{}' for merging.".format(args.merge_method)
@@ -98,6 +108,8 @@ if __name__ == "__main__":
                             help="Don't display resulting pointcloud")
     icp_parser.add_argument('-o', '--output-file', default= "merged.pcd",
                             help="Save the point cloud file")
+    icp_parser.add_argument('-p', '--plot-folder', default=None,
+                            help="Folder to store all plots in")
 
     # Subparser that handles Epipolar geometry args
     epi_parser = subparsers.add_parser('epi', help='Epipolar geometry' +

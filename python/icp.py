@@ -4,6 +4,7 @@ from pyflann import FLANN
 import sys
 import utils
 import pcl
+import pretty_plotter as plotter
 
 
 def readpcd(name):
@@ -123,6 +124,8 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         if debug > 0:
             print "\rRMS for the whole scene:", rms
 
+        plotter.collect_data(plotter.DATASET_RMS_MERGE, rms, debug)
+
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f2))
 
@@ -185,6 +188,7 @@ def icp(source, target, D, debug=0, epsilon=0.000001):
 
         # Compute new RMS
         rms_new = math.sqrt(sum(dists) / float(len(dists)))
+        plotter.collect_data(plotter.DATASET_RMS_ICP, rms_new, debug)
 
         # Give feedback if necessary
         if debug > 0:

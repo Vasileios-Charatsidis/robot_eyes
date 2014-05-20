@@ -4,7 +4,8 @@ from pyflann import FLANN
 import sys
 import utils
 import pcl
-import pretty_plotter as plotter
+
+from pretty_plotter import plotter
 
 
 def readpcd(name):

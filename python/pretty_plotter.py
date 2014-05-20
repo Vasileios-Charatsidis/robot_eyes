@@ -4,90 +4,125 @@ except ImportError:
     import pickle
 import sys
 
-
-''' If True, don't do anything that might be annoying. '''
-_DISABLED = False
-
-# Data set names
-DATASET_RMS_ICP = 'RMS ICP'
-DATASET_RMS_MERGE = 'RMS merge'
-
-''' Data storage for plots.  
-
-Each entry has a data set name (the key) and a list of values.  Structured
-values (such as list and tuples) are allowed, but there is no check for
-homogeneity of the data set.
-'''
-_DATA = {
-    DATASET_RMS_ICP: [],
-    DATASET_RMS_MERGE: [],
-}
-
-_OUTPUT_FOLDER = None
+import matplotlib.pyplot as plt
 
 
-def disable_plotter():
-    global _DISABLED
-    _DISABLED = True
+class Plotter(object):
+    ''' Creates plots from collected data. '''
 
+    # Data set names
+    # Each data set identifier is defined by a tuple:
+    #     (plot title, x_label, y_label)
+    DATASET_RMS_ICP = ('RMS ICP', 'iteration', 'RMS')
+    DATASET_RMS_MERGE = ('RMS merge', 'iteration', 'RMS')
 
-def enable_plotter():
-    global _DISABLED
-    _DISABLED = False
+    ''' If True, don't do anything that might be time consuming/graphical. '''
+    _disabled = False
 
+    ''' Where plots will be stored. If None, only show them. '''
+    _output_folder = None
 
-def output_folder(folder_name):
-    ''' Set the storage folder for plots, if written to file. '''
-    global _OUTPUT_FOLDER
-    _OUTPUT_FOLDER = folder_name
-    return _OUTPUT_FOLDER
+    ''' Data storage for plots.  
 
-
-def collect_data(data_set, data_point, debug):
-    ''' Collect data and store it in a specific data set. '''
-    if _DISABLED:
-        return
-
-    try:
-        _DATA[data_set].append(data_point)
-    except KeyError:
-        if debug:
-            print "Data set \"{}\" unknown.".format(data_set)
-    except AttributeError:
-        if debug > 1:
-            print "Data set representation not as expected."
-
-
-def store_data(pickle_file):
+    Each entry has a data set name (the key) and a list of values.
+    Structured values (such as list and tuples) are allowed, but there is
+    no check for homogeneity of the data set.
     '''
-    Write recorded data set to file.
-
-    Note that the argument is a file reference, not a file name!
-    '''
-    pickle.dump(_DATA, pickle_file)
-
-
-def retrieve_data(pickle_file):
-    '''
-    Read a data set from a file.
-
-    Note that the argument is a file reference, not a file name!
-    '''
-    _DATA = pickle.load(pickle_file)
+    _data = {
+            DATASET_RMS_ICP: [],
+            DATASET_RMS_MERGE: [],
+    }
 
 
-def create_plots(plot_folder=None):
-    '''
-    Create all plots we want to use for the report. 
-    
-    When no file name is given, display the plot as a separate window.
-    '''
-    if _DISABLED:
-        return
-    create_rms_plot(plot_folder)
+    def __del__(self):
+        sys.stdout.write("Killing {}.{}\n".format(__name__,
+                                                  self.__class__.__name__))
+        with open('pickle', 'w') as f:
+            self.store_data(f)
+        sys.stdout.flush()
 
 
-def create_rms_plot(plot_folder):
-    if _DISABLED: 
-        return
-    pass
+    @classmethod
+    def disable(cls):
+        cls._disabled = True
+
+
+    @classmethod
+    def enable(cls):
+        cls._disable = False
+
+
+    @classmethod
+    def is_disabled(cls):
+        return cls._disabled;
+
+
+    @classmethod
+    def output_folder(cls, folder_name):
+        ''' Set the storage folder for plots, if written to file. '''
+        cls._output_folder = folder_name
+        return cls._output_folder
+
+
+    @classmethod
+    def collect_data(cls, data_set, data_point, debug):
+        ''' Collect data and store it in a specific data set. '''
+        if cls._disabled:
+            return
+
+        try:
+            cls._data[data_set].append(data_point)
+        except KeyError:
+            if debug:
+                print "Data set \"{}\" unknown.".format(data_set)
+        except AttributeError:
+            if debug > 1:
+                print "Data set representation not as expected."
+
+
+    @classmethod
+    def store_data(cls, pickle_file):
+        '''
+        Write recorded data set to file.
+
+        Note that the argument is a file reference, not a file name!
+        '''
+        pickle.dump(cls._data, pickle_file)
+
+
+    @classmethod
+    def retrieve_data(cls, pickle_file):
+        '''
+        Read a data set from a file.
+
+        Note that the argument is a file reference, not a file name!
+        '''
+        cls._data = pickle.load(pickle_file)
+
+
+    def create_plots(self):
+        '''
+        Create all plots we want to use for the report. 
+        
+        When no file name is given, display the plot as a separate window.
+        '''
+        if self.is_disabled():
+            return
+        for params, data in self._data:
+            self._plot(data, *params)
+
+
+    def _plot(data, name, xlabel, ylabel, zipped_data=False, drawing='r'):
+        if zipped_data:
+            data, data_y = zip(*data)
+        else:
+            data_y = range(len(data))
+
+        plt.plot(data, data_y, drawing)
+        plt.plot.xlabel(xlabel)
+        plt.plot.ylabel(ylabel)
+        plt.title(name)
+
+        plt.show()
+
+plotter = Plotter()

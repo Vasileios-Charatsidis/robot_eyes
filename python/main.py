@@ -7,7 +7,7 @@ import time
 
 import eightpoint as epi
 import icp
-import plotter
+from pretty_plotter import plotter
 
 
 def icp_main(args):

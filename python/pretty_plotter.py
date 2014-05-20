@@ -2,6 +2,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import atexit
 import sys
 
 import matplotlib.pyplot as plt
@@ -34,9 +35,8 @@ class Plotter(object):
     }
 
 
-    def __del__(self):
-        sys.stdout.write("Killing {}.{}\n".format(__name__,
-                                                  self.__class__.__name__))
+    def _atexit(self):
+        self.create_plots()
         with open('pickle', 'w') as f:
             self.store_data(f)
         sys.stdout.flush()
@@ -108,21 +108,27 @@ class Plotter(object):
         '''
         if self.is_disabled():
             return
-        for params, data in self._data:
-            self._plot(data, *params)
+        for params, data in self._data.items():
+            self._plot(data, params)
+        plt.show()
 
 
-    def _plot(data, name, xlabel, ylabel, zipped_data=False, drawing='r'):
+    def _plot(self, data, labels, zipped_data=False, drawing='r'):
+        name, xlabel, ylabel = labels
+
         if zipped_data:
             data, data_y = zip(*data)
         else:
             data_y = range(len(data))
 
-        plt.plot(data, data_y, drawing)
-        plt.plot.xlabel(xlabel)
-        plt.plot.ylabel(ylabel)
-        plt.title(name)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(data, data_y, drawing)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(name)
 
         plt.show()
 
 plotter = Plotter()
+atexit.register(plotter._atexit)

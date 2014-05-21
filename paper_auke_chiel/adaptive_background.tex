@@ -39,10 +39,12 @@ tracking}
 	Model the values of a pixel as a mixture of Gaussians. Pixels that do not
 	fit in the background distribution are considered foreground.
 
-	There are two significant parameters:
+	There are `two' significant parameters:
 	\begin{itemize}
 	\item Learning constant $\alpha$
 	\item Proportion of data that should be background $T$
+	\item $\ldots$ there is a third one, $K$, the number of Gaussians (but $K$ is determined by available memory and computation power).
+	\item $\ldots$ there is a fourth one, $B$, which determines the number of selected Gaussians. This is found through $T$.
 	\end{itemize}
 
 \section{Method}

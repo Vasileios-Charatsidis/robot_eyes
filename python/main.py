@@ -22,9 +22,9 @@ def icp_main(args):
 
     plot_folder = args.plot_folder
     if None:
-        plotter.disable_plotter()
+        plotter.disable()
     else:
-        plotter.enable_plotter()
+        plotter.enable()
         plotter.output_folder(plot_folder)
 
     if args.verbosity > 0:
@@ -59,6 +59,7 @@ def epi_main(args):
     img_files = sorted(list(os.path.join(args.data_dir, f)
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.png')))
+
     if args.verbosity > 0:
         print "Estimating fundamental matrix!"
         print "Using {} eightpoint algorithm".format("standard" if
@@ -78,6 +79,8 @@ def epi_main(args):
 
 
 if __name__ == "__main__":
+    plotter.disable() # Will be enabled by icp_main or epi_main, if needed
+
     arg_parser = argparse.ArgumentParser(
         description="Implementation of ICP.",
         epilog="...")

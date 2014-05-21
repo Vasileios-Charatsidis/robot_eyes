@@ -36,6 +36,9 @@ class Plotter(object):
 
 
     def _atexit(self):
+        if self.is_disabled():
+            return
+
         self.create_plots()
         with open('pickle', 'w') as f:
             self.store_data(f)
@@ -110,6 +113,7 @@ class Plotter(object):
             return
         for params, data in self._data.items():
             self._plot(data, params)
+            print len(data)
         plt.show()
 
 
@@ -117,18 +121,17 @@ class Plotter(object):
         name, xlabel, ylabel = labels
 
         if zipped_data:
-            data, data_y = zip(*data)
+            data, data_x = zip(*data)
         else:
-            data_y = range(len(data))
+            data_x = range(len(data))
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(data, data_y, drawing)
+        ax.plot(data_x, data, drawing)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(name)
 
-        plt.show()
 
 plotter = Plotter()
 atexit.register(plotter._atexit)

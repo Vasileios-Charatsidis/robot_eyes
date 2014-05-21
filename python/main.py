@@ -61,6 +61,13 @@ def epi_main(args):
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.png')))
 
+    if args.max:
+        num_files = len(img_files)
+        if args.max < num_files:
+            img_files = img_files[:args.max+1]
+        elif args.verbosity > 0:
+            print "Warning: {} only has {} files.".format(data_set, num_files)
+
     if args.verbosity > 0:
         print "Estimating fundamental matrix!"
         print "Using {} eightpoint algorithm".format("standard" if
@@ -88,9 +95,9 @@ if __name__ == "__main__":
     subparsers = arg_parser.add_subparsers(help='Method to execute:')
 
     # All methods require a data folder containing pcd/img files
-    arg_parser.add_argument('-v', '--verbosity', type=int,
-                            default=0, help="Set verbosity level, " +
-                            "0: silent, 1: verbose, 2: very verbose")
+    arg_parser.add_argument('-v', '--verbosity', action='count',
+                            help="Set verbosity level, " +
+                            "default: silent, -v: verbose, -vv: very verbose")
 
     # Subparser that handles ICP arguments
     icp_parser = subparsers.add_parser('icp', help='Iterative closest point' +

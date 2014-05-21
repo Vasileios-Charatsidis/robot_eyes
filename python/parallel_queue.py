@@ -42,7 +42,7 @@ def process_parallel(iter_to_process, evaluation_function,
     output = {}
     for worker, pipe in workers:
         output.update(pipe.recv())
-    return[v for k,v in sorted(output.iteritems())]
+    return[v for k, v in sorted(output.iteritems())]
 
 
 class Worker(mp.Process):

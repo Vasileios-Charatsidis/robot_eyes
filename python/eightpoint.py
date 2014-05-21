@@ -209,8 +209,7 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
         for p1, p2 in izip(rest1, rest2):
             Fp1 = np.dot(F, p1)
             # Calculate sampson distance
-            d = (np.dot(p2.T, Fp1) ** 2) /\
-                np.sum(np.power(Fp1, 2))
+            d = (np.dot(p2.T, Fp1) ** 2) / np.sum(np.power(Fp1, 2))
             if d < threshold:
                 inliers.append((p1, p2))
             else:
@@ -222,11 +221,11 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
     list_of_numinliers_and_fundamentals = \
         process_parallel(random_indices, evaluate, num_processes=4,
                          matches1=matches1, matches2=matches2,
-                         threshold=threshold,)
+                         threshold=threshold)
 
     # 4. Based on evaluation function, now contains <len_inliers>, F
     return sorted(list_of_numinliers_and_fundamentals,
-                  key=lambda tup : tup[0])[-1][1]
+                  key=lambda tup: tup[0])[-1][1]
 
 
 def fundamental(matches1, matches2):

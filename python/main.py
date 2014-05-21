@@ -87,7 +87,7 @@ def epi_main(args):
 
 
 if __name__ == "__main__":
-    plotter.disable() # Will be enabled by icp_main or epi_main, if needed
+    plotter.disable()  # Will be enabled by icp_main or epi_main, if needed
 
     arg_parser = argparse.ArgumentParser(
         description="Implementation of ICP.",
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                             help="The proportion of points to sample")
     icp_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display resulting pointcloud")
-    icp_parser.add_argument('-o', '--output-file', default= "merged.pcd",
+    icp_parser.add_argument('-o', '--output-file', default="merged.pcd",
                             help="Save the point cloud file")
     icp_parser.add_argument('-p', '--plot-folder', default=None,
                             help="Folder to store all plots in")

@@ -1,4 +1,4 @@
-try: 
+try:
     import cPickle as pickle
 except ImportError:
     import pickle
@@ -23,17 +23,14 @@ class Plotter(object):
     ''' Where plots will be stored. If None, only show them. '''
     _output_folder = None
 
-    ''' Data storage for plots.  
+    ''' Data storage for plots.
 
     Each entry has a data set name (the key) and a list of values.
     Structured values (such as list and tuples) are allowed, but there is
     no check for homogeneity of the data set.
     '''
-    _data = {
-            DATASET_RMS_ICP: [],
-            DATASET_RMS_MERGE: [],
-    }
-
+    _data = {DATASET_RMS_ICP: [],
+             DATASET_RMS_MERGE: []}
 
     def _atexit(self):
         if self.is_disabled():
@@ -44,28 +41,23 @@ class Plotter(object):
             self.store_data(f)
         sys.stdout.flush()
 
-
     @classmethod
     def disable(cls):
         cls._disabled = True
-
 
     @classmethod
     def enable(cls):
         cls._disable = False
 
-
     @classmethod
     def is_disabled(cls):
-        return cls._disabled;
-
+        return cls._disabled
 
     @classmethod
     def output_folder(cls, folder_name):
         ''' Set the storage folder for plots, if written to file. '''
         cls._output_folder = folder_name
         return cls._output_folder
-
 
     @classmethod
     def collect_data(cls, data_set, data_point, debug):
@@ -82,7 +74,6 @@ class Plotter(object):
             if debug > 1:
                 print "Data set representation not as expected."
 
-
     @classmethod
     def store_data(cls, pickle_file):
         '''
@@ -91,7 +82,6 @@ class Plotter(object):
         Note that the argument is a file reference, not a file name!
         '''
         pickle.dump(cls._data, pickle_file)
-
 
     @classmethod
     def retrieve_data(cls, pickle_file):
@@ -102,11 +92,10 @@ class Plotter(object):
         '''
         cls._data = pickle.load(pickle_file)
 
-
     def create_plots(self):
         '''
-        Create all plots we want to use for the report. 
-        
+        Create all plots we want to use for the report.
+
         When no file name is given, display the plot as a separate window.
         '''
         if self.is_disabled():
@@ -115,7 +104,6 @@ class Plotter(object):
             self._plot(data, params)
             print len(data)
         plt.show()
-
 
     def _plot(self, data, labels, zipped_data=False, drawing='r'):
         name, xlabel, ylabel = labels

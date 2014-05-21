@@ -94,7 +94,7 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     merged = f1    # Is by reference, but f1 is never altered so that's okay
 
     # Homogeneous transformation matrix
-    T_c = homogenize_transformation(np.eye(3), np.zeros((1,3)))
+    T_c = homogenize_transformation(np.eye(3), np.zeros((1, 3)))
 
     for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size,
                                          max_scenes):

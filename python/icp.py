@@ -108,10 +108,10 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
             R, t, T, rms_subsample, flann_idx = \
-                icp(f1, f2, D=3, debug=debug)
+                icp(f1, f2, debug=debug)
         elif method == 'merge_during':
             R, t, T, rms_subsample, flann_idx = \
-                icp(merged, f2, D=3, debug=debug)
+                icp(merged, f2, debug=debug)
 
         # Transform f2 to merged given R and t
         transformed_f2 = np.dot(R, f2_all.T).T + t
@@ -138,7 +138,7 @@ def merge(pcd_files, method, max_scenes, subsample_size, debug):
     return merged
 
 
-def icp(source, target, D, debug=0, epsilon=0.000001):
+def icp(source, target, D=3, debug=0, epsilon=0.000001):
     '''
     Perform ICP for two arrays containing points. Note that these
     arrays must be row-major!
@@ -223,7 +223,8 @@ def icp(source, target, D, debug=0, epsilon=0.000001):
         # TODO needed?
         # ensure righthandedness coordinate system and calculate R
         d = np.linalg.det(np.dot(v, u.T))
-        sign_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, d]])
+        sign_matrix = np.eye(D)
+        sign_matrix[D-1, D-1] = d
         R = np.dot(np.dot(v.T, sign_matrix), u.T)
         t[0, :] = np.dot(R, -centroid_transformed_target) + \
             centroid_selected_source
@@ -272,4 +273,4 @@ if __name__ == "__main__":
                      [0, 1, 0],
                      [0.5, 0.5, 0]], dtype=float)
     pcd2 = np.dot(R, pcd1) + np.array([[3, 1, 2]])
-    icp(pcd1, pcd2, D=3, debug=3)
+    icp(pcd1, pcd2, debug=3)

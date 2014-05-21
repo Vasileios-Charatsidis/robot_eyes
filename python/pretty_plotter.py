@@ -18,7 +18,7 @@ class Plotter(object):
     DATASET_RMS_MERGE = ('RMS merge', 'iteration', 'RMS')
 
     ''' If True, don't do anything that might be time consuming/graphical. '''
-    _disabled = False
+    _disabled = True
 
     ''' Where plots will be stored. If None, only show them. '''
     _output_folder = None
@@ -29,8 +29,7 @@ class Plotter(object):
     Structured values (such as list and tuples) are allowed, but there is
     no check for homogeneity of the data set.
     '''
-    _data = {DATASET_RMS_ICP: [],
-             DATASET_RMS_MERGE: []}
+    _data = {}
 
     def _atexit(self):
         if self.is_disabled():
@@ -68,8 +67,7 @@ class Plotter(object):
         try:
             cls._data[data_set].append(data_point)
         except KeyError:
-            if debug:
-                print "Data set \"{}\" unknown.".format(data_set)
+            cls._data[data_set] = [data_point]
         except AttributeError:
             if debug > 1:
                 print "Data set representation not as expected."

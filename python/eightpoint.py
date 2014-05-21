@@ -13,7 +13,8 @@ def epipole(fundamental):
     F e = 0
     F^T e' = 0
 
-    so we can use svd to find the answer(s)
+    so we can use svd to find the answer(s), as this gives us
+    the nullspace of the matrix in the last matrix.
     """
     _, _, v = np.linalg.svd(fundamental)
     _, _, v_prime = np.linalg.svd(fundamental.T)
@@ -89,7 +90,9 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
 
 
 def read_and_crop(img_name, crop, grayscale=True):
-    """"""
+    """
+    Read an image by its name, and crop it.
+    """
     img = cv2.imread(img_name)
     # TODO enable 1D image cropping
     if crop:
@@ -180,11 +183,6 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
     cv2.waitKey()
 
 
-# 1. Detect interest points in both images
-# 2. Characterize local appearance of the regions around interest points
-# 3. Get a set of supposed matches
-# 4. Estimate fundamental matrix
-
 def fundamental_ransac(matches1, matches2, ransac_iterations,
                        threshold):
     """Use RANSAC to find the best fundamental matrix"""
@@ -200,10 +198,9 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
         F = fundamental(selected1, selected2)
 
         rest1 = matches1[[i for i in xrange(len(matches1))
-                         if not i in indices]]
+                          if i not in indices]]
         rest2 = matches2[[i for i in xrange(len(matches1))
-                         if not i in indices]]
-        output = []
+                          if i not in indices]]
         inliers = []
         outliers = []
         for p1, p2 in izip(rest1, rest2):
@@ -214,7 +211,7 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
                 inliers.append((p1, p2))
             else:
                 outliers.append((p1, p2))
-        return len(inliers), F
+        return inliers, F
 
     # 3. Feed it all to the parallel queue!
     from parallel_queue import process_parallel
@@ -225,7 +222,7 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
 
     # 4. Based on evaluation function, now contains <len_inliers>, F
     return sorted(list_of_numinliers_and_fundamentals,
-                  key=lambda tup: tup[0])[-1][1]
+                  key=lambda tup: len(tup[0]))[-1][1]
 
 
 def fundamental(matches1, matches2):

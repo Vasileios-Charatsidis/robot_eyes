@@ -1,5 +1,4 @@
 import numpy as np
-import operator
 from itertools import izip
 import math
 import cv2
@@ -30,7 +29,7 @@ def estimate_camera_matrices(img_files, normalized, ransac_iterations,
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
-               threshold=1e-3, data_set="", verbosity=0):
+               threshold=1e-3, data_set="", verbose=False):
     """
     Perform the eightpoint algorithm for a given set of images.
     Normalized is a boolean indicating whether we should use the
@@ -65,25 +64,34 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         # Get arrays of keypoints that match (and filter out bad ones)
         matches1, matches2 = filter_matches(kp1, kp2, matches, ratio=0.5)
         # TODO make ratio arg
-        if verbosity > 1:
-            drawmatches(img1, img2, matches1, matches2, verbosity)
+        drawmatches(img1, img2, matches1, matches2, verbose)
 
         if normalized:
-            matches1, T1 = normalize(matches1, verbosity)
-            matches2, T2 = normalize(matches2, verbosity)
+            unnormalized_m1 = matches1
+            unnormalized_m2 = matches2
+            matches1, T1 = normalize(matches1, verbose)
+            matches2, T2 = normalize(matches2, verbose)
 
         # Compute fundamental matrix!
+        # FIXME flow of program is just.. ugly
         if not ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
-            F = fundamental_ransac(matches1, matches2, ransac_iterations,
-                                   threshold)
-
+            inliers, F = \
+                fundamental_ransac(matches1, matches2,
+                                   ransac_iterations, threshold,
+                                   verbose)
         if normalized:
             F = np.dot(T2.T, np.dot(F, T1))
+            matches1 = unnormalized_m1
+            matches2 = unnormalized_m2
+        if ransac_iterations:
+            matches1 = matches1[inliers]
+            matches2 = matches2[inliers]
 
         print F
-        e, e_prime = epipole(F)
+        # e, e_prime = epipole(F)
+        draw_epipolar_lines(img1, img2, F, matches1, matches2)
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
@@ -141,6 +149,51 @@ def normalize(points, verbosity):
     return normalized_points, T
 
 
+def draw_epipolar_lines(img1, img2, fundamental, matches1, matches2,
+                        verbosity=0):
+    """
+    Draw two given images and draw epipolar lines on both.
+    """
+
+    def draw_epipolar_line(view, point, line, x0, x1, offset_pt,
+                           offset_ln, color):
+        # Lines are in form Ax + By + C = 0, which gives us
+        point = (int(point[0]) + offset_pt, int(point[1]))
+        a, b, c = line
+        y0 = int((-a * x0 - c) / float(b))
+        y1 = int((-a * x1 - c) / float(b))
+        cv2.line(view,
+                 (int(offset_ln + x0), y0),
+                 (int(offset_ln + x1), y1),
+                 color)
+        cv2.circle(view, point, radius=20, color=color)
+
+    # Create storage for both images
+    h1, w1 = img1.shape[:2]
+    h2, w2 = img2.shape[:2]
+    view = np.zeros((max(h1, h2), w1 + w2, 3), np.uint8)
+    view[:h1, :w1, 0] = img1
+    view[:h2, w1:, 0] = img2
+    view[:, :, 1] = view[:, :, 0]
+    view[:, :, 2] = view[:, :, 0]
+
+    for x, x_prime in izip(matches1, matches2):
+        color = tuple([np.random.randint(0, 255)
+                       for _ in xrange(3)])
+        l_prime = np.dot(fundamental, x)
+        l = np.dot(fundamental.T, x_prime)
+
+        # l is the line corresponding to x_prime
+        draw_epipolar_line(view, x_prime, l, 0, w2, w1, 0, color)
+        # l_prime is the line corresponding to x
+        draw_epipolar_line(view, x, l_prime, 0, w1, 0, w1, color)
+
+    # Resize for easy display
+    view = cv2.resize(view, (0, 0), fx=0.25, fy=0.25)
+    cv2.imshow("Epipolar lines", view)
+    cv2.waitKey()
+
+
 def drawmatches(img1, img2, kp1, kp2, verbosity=0):
     """
     Since drawMatches is not yet included in opencv 2.4.9, we
@@ -155,10 +208,6 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
     """
     h1, w1 = img1.shape[:2]
     h2, w2 = img2.shape[:2]
-    if verbosity > 1:
-        print "Img1: height {}, width {}".format(h1, w1)
-        print "Img2: height {}, width {}".format(h2, w2)
-
     # Create storage for eventual matches
     view = np.zeros((max(h1, h2), w1 + w2, 3), np.uint8)
     view[:h1, :w1, 0] = img1
@@ -184,7 +233,7 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
 
 
 def fundamental_ransac(matches1, matches2, ransac_iterations,
-                       threshold):
+                       threshold, verbose=False):
     """Use RANSAC to find the best fundamental matrix"""
 
     # 1. Randomly sample matches, save in N x 8 matrix
@@ -192,7 +241,7 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
                                        (ransac_iterations, 8))
 
     # 2. Define some function that can evaluate each sample's F
-    def evaluate(indices, matches1, matches2, threshold=1e-3):
+    def evaluate(indices, matches1, matches2, threshold=1e-4):
         selected1 = matches1[indices]
         selected2 = matches2[indices]
         F = fundamental(selected1, selected2)
@@ -203,44 +252,44 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
                           if i not in indices]]
         inliers = []
         outliers = []
-        for p1, p2 in izip(rest1, rest2):
+        for idx, (p1, p2) in enumerate(izip(rest1, rest2)):
             Fp1 = np.dot(F, p1)
             # Calculate sampson distance
             d = (np.dot(p2.T, Fp1) ** 2) / np.sum(np.power(Fp1, 2))
             if d < threshold:
-                inliers.append((p1, p2))
+                inliers.append(idx)
             else:
-                outliers.append((p1, p2))
+                outliers.append(idx)
         return inliers, F
 
     # 3. Feed it all to the parallel queue!
     from parallel_queue import process_parallel
     list_of_numinliers_and_fundamentals = \
         process_parallel(random_indices, evaluate, num_processes=4,
-                         matches1=matches1, matches2=matches2,
-                         threshold=threshold)
+                         verbose=True, matches1=matches1,
+                         matches2=matches2, threshold=threshold)
 
     # 4. Based on evaluation function, now contains <len_inliers>, F
-    return sorted(list_of_numinliers_and_fundamentals,
-                  key=lambda tup: len(tup[0]))[-1][1]
+    srtd = sorted(list_of_numinliers_and_fundamentals,
+                  key=lambda tup: len(tup[0]))
+    return srtd[-1]
 
 
 def fundamental(matches1, matches2):
     """
     Compute the fundamental matrix given two sets of matches.
     """
+    # [ x1 x1'  x1 y1'  x1   y1 x1'  y1 y1'  y1   x1'  y1'  1 ]
+    A = np.tile(matches2, (1, 3)) * np.repeat(matches1, 3, 1)
     # Compute svd of A
-    A = np.tile(matches1, (1, 3)) * np.repeat(matches2, 3, 1)
-
     U, D, V = np.linalg.svd(A)
     # Take columns/rows of interest TODO find out if this is needed?
     # Uf = U[:, 0:3]
     # Df = np.diag(D[0:3])
     # Vf = V[0:3]
 
-    # entries of F are in last column of v
+    # entries of F are in last column of v, which is the nullspace of A
     F = np.reshape(V[:, -1], (3, 3))
-
     Uf, Df, Vf = np.linalg.svd(F)
 
     # Set smallest singular value to zero

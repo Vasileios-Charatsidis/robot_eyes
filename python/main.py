@@ -7,6 +7,8 @@ import time
 
 import eightpoint as epi
 import icp
+import sfm
+
 from pretty_plotter import plotter
 
 
@@ -86,6 +88,24 @@ def epi_main(args):
                                                       time.time() - now)
 
 
+def sfm_main(args):
+    '''
+    Call necessary functions to perform (affine) structure from motion.
+    '''
+    # TODO load pkl files containing inlier featurepoints in images !
+    try:
+        points = pickle.load(args.points)
+    except:
+        print "Could not load file '{}'".format(args.points)
+        return
+
+    if args.verbosity > 0:
+        print "Applying affine sfm to find 3d model, given a set of" +\
+            "features per image"
+
+    sfm.structure_from_motion(points, args.verbosity)
+
+
 if __name__ == "__main__":
     plotter.disable()  # Will be enabled by icp_main or epi_main, if needed
 
@@ -103,7 +123,7 @@ if __name__ == "__main__":
     icp_parser = subparsers.add_parser('icp', help='Iterative closest point' +
                                        ' (assignment 1)')
     icp_parser.set_defaults(func=icp_main)
-    # Location args
+    # Positional args
     icp_parser.add_argument('data_dir',
                             help='Data directory containing pcd files')
     icp_parser.add_argument('merge_method', default='merge_during', nargs='?',
@@ -136,6 +156,16 @@ if __name__ == "__main__":
                             "do not use RANSAC")
     epi_parser.add_argument('-m', '--max', type=int, default=2,
                             help="Maximum number of images to read")
+
+    # Subparser that handles Structuer from motion args
+    sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +\
+                                       "assignment 3")
+    # Positional args
+    sfm_parser.add_argument('points',
+                            help='Pkl file containing found features.')
+    # Optional args
+    sfm_parser.add_argument('-o', '--output-file', default="",
+                            help="Save the point cloud file")
 
     args = arg_parser.parse_args()
     args.func(args)

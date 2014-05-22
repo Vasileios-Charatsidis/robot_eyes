@@ -2,6 +2,7 @@ import numpy as np
 from itertools import izip
 import math
 import cv2
+import cPickle as pickle
 
 
 def epipole(fundamental):
@@ -29,7 +30,7 @@ def estimate_camera_matrices(img_files, normalized, ransac_iterations,
 
 
 def eightpoint(img_files, normalized, ransac_iterations=None,
-               threshold=1e-3, data_set="", verbose=False):
+               data_set="", output="", threshold=1e-3,  verbose=False):
     """
     Perform the eightpoint algorithm for a given set of images.
     Normalized is a boolean indicating whether we should use the
@@ -53,6 +54,8 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
     # Compute keypoints
     kp1, des1 = sift.detectAndCompute(img1, None)
 
+    tosave = []
+
     for img2_name in img_files[1:]:
         # Read the next file
         img2 = read_and_crop(img2_name, crop, grayscale=True)
@@ -63,8 +66,12 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         matches = flann.knnMatch(des1, des2, k=2)
         # Get arrays of keypoints that match (and filter out bad ones)
         matches1, matches2 = filter_matches(kp1, kp2, matches, ratio=0.5)
+        if verbose:
+            print "Found {} matches.".format(len(matches1))
+
         # TODO make ratio arg
-        drawmatches(img1, img2, matches1, matches2, verbose)
+        if verbose:
+            drawmatches(img1, img2, matches1, matches2, verbose)
 
         if normalized:
             unnormalized_m1 = matches1
@@ -85,16 +92,27 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
             F = np.dot(T2.T, np.dot(F, T1))
             matches1 = unnormalized_m1
             matches2 = unnormalized_m2
+
+        if verbose:
+            print 'F:', F
+
         if ransac_iterations:
             matches1 = matches1[inliers]
             matches2 = matches2[inliers]
 
-        print F
+        # Save matches!
+        tosave.append((matches1, matches2))
+
         # e, e_prime = epipole(F)
-        draw_epipolar_lines(img1, img2, F, matches1, matches2)
+        if verbose:
+            draw_epipolar_lines(img1, img2, F, matches1, matches2)
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
+
+    if output:
+        print "Saved points in '{}'".format(output)
+        pickle.dump(tosave, open(output, 'wb'))
 
 
 def read_and_crop(img_name, crop, grayscale=True):
@@ -272,6 +290,8 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
     # 4. Based on evaluation function, now contains <len_inliers>, F
     srtd = sorted(list_of_numinliers_and_fundamentals,
                   key=lambda tup: len(tup[0]))
+    if verbose:
+        print "Found F, with {} inliers.".format(len(srtd[-1][0]))
     return srtd[-1]
 
 

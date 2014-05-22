@@ -76,8 +76,6 @@ class Worker(mp.Process):
                                          **self.additional_vars)
             self._queue.task_done()
         self._queue.task_done()
-        if self._verbose:
-            print "\nWorker {} finished.".format(self._id),
         self._queue.close()
         import gc
         gc.collect()

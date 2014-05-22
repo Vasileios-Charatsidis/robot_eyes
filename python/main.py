@@ -71,16 +71,17 @@ def epi_main(args):
             print "Warning: {} only has {} files.".format(data_set, num_files)
 
     if args.verbosity > 0:
-        print "Estimating fundamental matrix!"
+        print "Estimating fundamental matrix for dataset {}!".format(data_set)
         print "Using {} eightpoint algorithm".format("standard" if
                                                      not args.normalized
                                                      else "normalized")
         if args.ransac_iterations:
-            print "Using {} RANSAC iterations".format(args.ransac_iterations)
+            print ".. with {} RANSAC iterations".format(args.ransac_iterations)
         now = time.time()
 
     epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
-                   data_set, args.verbosity)
+                   data_set, args.output_file, threshold=args.threshold,
+                   verbose=args.verbosity)
     # TODO epi.chaining ?
 
     if args.verbosity > 0:
@@ -156,6 +157,10 @@ if __name__ == "__main__":
                             "do not use RANSAC")
     epi_parser.add_argument('-m', '--max', type=int, default=2,
                             help="Maximum number of images to read")
+    epi_parser.add_argument('-t', '--threshold', type=float, default=1e-3,
+                            help="Threshold for ransac")
+    epi_parser.add_argument('-o', '--output-file', default="points.pkl",
+                            help="Save the matches")
 
     # Subparser that handles Structuer from motion args
     sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +\

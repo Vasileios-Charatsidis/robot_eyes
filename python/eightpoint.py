@@ -5,7 +5,7 @@ import cv2
 import cPickle as pickle
 
 
-def epipole(fundamental):
+def epipole(fund):
     """
     Calculate the epipoles e, e' given a fundemental matrix.
 
@@ -16,8 +16,8 @@ def epipole(fundamental):
     so we can use svd to find the answer(s), as this gives us
     the nullspace of the matrix in the last matrix.
     """
-    _, _, v = np.linalg.svd(fundamental)
-    _, _, v_prime = np.linalg.svd(fundamental.T)
+    _, _, v = np.linalg.svd(fund)
+    _, _, v_prime = np.linalg.svd(fund.T)
     return v[:, -1], v_prime[:, -1]
 
 

@@ -56,7 +56,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
 
     tosave = []
 
-    for img2_name in img_files[1:]:
+    for n, img2_name in enumerate(img_files[1:]):
         # Read the next file
         img2 = read_and_crop(img2_name, crop, grayscale=True)
         kp2, des2 = sift.detectAndCompute(img2, None)
@@ -66,6 +66,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         matches = flann.knnMatch(des1, des2, k=2)
         # Get arrays of keypoints that match (and filter out bad ones)
         matches1, matches2 = filter_matches(kp1, kp2, matches, ratio=0.5)
+
         if verbose:
             print "Found {} matches.".format(len(matches1))
 
@@ -112,7 +113,37 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
 
     if output:
         print "Saved points in '{}'".format(output)
-        pickle.dump(tosave, open(output, 'wb'))
+        # Use all matches found so far to construct pointview mat
+        pv_mat = construct_pointview_mat(len(img_files), tosave)
+        pickle.dump(pv_mat, open(output, 'wb'))
+
+def construct_pointview_mat(num_images, matches):
+    # construct pointview matrix
+    pointview = {i: {} for i in xrange(num_images)}
+
+    # Iterate over match pairs, add columns if needed
+    point_idx = 0
+    # Create a dummy match for timestep 0
+    pointview[-1] = []
+    matches = [(matches[0][0], matches[0][0])] + matches
+    for n, (matches1, matches2) in enumerate(matches):
+        for m1, m2 in izip(matches1, matches2):
+            m1, m2 = tuple(m1[:2]), tuple(m2[:2])
+            # Add to existing column
+            if m1 in pointview[n - 1]:
+                pointview[n][m2] = pointview[n - 1][m1]
+            # introduce new column
+            else:
+                pointview[n][m2] = point_idx
+                point_idx += 1
+
+    del pointview[-1]
+    pointview_mat = np.zeros((num_images, point_idx, 2))
+    for n, pointview_dict in pointview.iteritems():
+        for point, idx in pointview_dict.iteritems():
+            pointview_mat[n, idx] = np.array(point[:2])
+    return pointview_mat
+
 
 
 def read_and_crop(img_name, crop, grayscale=True):

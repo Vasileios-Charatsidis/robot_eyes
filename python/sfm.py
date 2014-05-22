@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def structure_from_motion(points2d, points3d, args):
     '''
     Create a 3D model based on a set of points2d and the corresponding 3D points!
@@ -19,6 +22,5 @@ def structure_from_motion(points2d, points3d, args):
         M = np.dot(U, W)
         S = V
 
-
-        normalied_p1 = normalized_p2
+        normalized_p1 = normalized_p2
 

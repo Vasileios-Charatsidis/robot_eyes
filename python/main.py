@@ -159,11 +159,11 @@ if __name__ == "__main__":
                             help="Maximum number of images to read")
     epi_parser.add_argument('-t', '--threshold', type=float, default=1e-3,
                             help="Threshold for ransac")
-    epi_parser.add_argument('-o', '--output-file', default="points.pkl",
+    epi_parser.add_argument('-o', '--output-file', default="pointviewmat.pkl",
                             help="Save the matches")
 
     # Subparser that handles Structuer from motion args
-    sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +\
+    sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +
                                        "assignment 3")
     # Positional args
     sfm_parser.add_argument('points',

@@ -85,10 +85,9 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         if not ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
-            inliers, F = \
-                fundamental_ransac(matches1, matches2,
-                                   ransac_iterations, threshold,
-                                   verbose)
+            inliers, F = fundamental_ransac(matches1, matches2,
+                                            ransac_iterations,
+                                            threshold, verbose)
         if normalized:
             F = np.dot(T2.T, np.dot(F, T1))
             matches1 = unnormalized_m1
@@ -190,8 +189,7 @@ def normalize(points, verbosity):
 
     if verbosity > 1:
         print "Normalized points set, centroid is now {}".format(
-            np.mean(normalized_points, axis=0)) + \
-            ", should be close to zero."
+            np.mean(normalized_points, axis=0)) + ", should be close to zero."
         print "Mean distance to centroid is {}, should be sqrt(2)".format(
             np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
                                    axis=1))))

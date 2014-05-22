@@ -3,6 +3,7 @@ from itertools import izip
 import math
 import cv2
 import cPickle as pickle
+from collections import defaultdict
 
 
 def epipole(fund):
@@ -69,11 +70,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
 
         if verbose:
             print "Found {} matches.".format(len(matches1))
-
-        # TODO make ratio arg
-        if verbose:
             drawmatches(img1, img2, matches1, matches2, verbose)
-
         if normalized:
             unnormalized_m1 = matches1
             unnormalized_m2 = matches2
@@ -85,9 +82,11 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         if not ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
-            inliers, F = fundamental_ransac(matches1, matches2,
-                                            ransac_iterations,
-                                            threshold, verbose)
+            inliers, F = \
+                fundamental_ransac(matches1, matches2,
+                                   ransac_iterations, threshold,
+                                   verbose)
+        # finish normalization, reassign matches for visualisation
         if normalized:
             F = np.dot(T2.T, np.dot(F, T1))
             matches1 = unnormalized_m1
@@ -111,14 +110,25 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         img1, kp1, des1 = img2, kp2, des2
 
     if output:
-        print "Saved points in '{}'".format(output)
         # Use all matches found so far to construct pointview mat
         pv_mat = construct_pointview_mat(len(img_files), tosave)
+        print "Saved points in '{}'".format(output) + \
+            ", which has size {}".format(pv_mat.shape)
+
+        # True if not np.array([0, 0])
+        view = np.array(np.sum(pv_mat, axis=2) == np.zeros(pv_mat.shape[:2]),
+                        dtype=int)
+        view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
+        cv2.imshow("Pointviewmat", view)
+        cv2.waitKey()
         pickle.dump(pv_mat, open(output, 'wb'))
 
+
 def construct_pointview_mat(num_images, matches):
-    # construct pointview matrix
-    pointview = {i: {} for i in xrange(num_images)}
+    '''
+    Construct pointview matrix.
+    '''
+    pointview = {i: defaultdict(list) for i in xrange(num_images)}
 
     # Iterate over match pairs, add columns if needed
     point_idx = 0
@@ -130,19 +140,19 @@ def construct_pointview_mat(num_images, matches):
             m1, m2 = tuple(m1[:2]), tuple(m2[:2])
             # Add to existing column
             if m1 in pointview[n - 1]:
-                pointview[n][m2] = pointview[n - 1][m1]
+                pointview[n][m2].extend(pointview[n - 1][m1])
             # introduce new column
             else:
-                pointview[n][m2] = point_idx
+                pointview[n][m2].append(point_idx)
                 point_idx += 1
 
     del pointview[-1]
     pointview_mat = np.zeros((num_images, point_idx, 2))
     for n, pointview_dict in pointview.iteritems():
-        for point, idx in pointview_dict.iteritems():
-            pointview_mat[n, idx] = np.array(point[:2])
+        for point, idcs in pointview_dict.iteritems():
+            for idx in idcs:
+                pointview_mat[n, idx] = np.array(point[:2])
     return pointview_mat
-
 
 
 def read_and_crop(img_name, crop, grayscale=True):
@@ -313,7 +323,7 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
     from parallel_queue import process_parallel
     list_of_numinliers_and_fundamentals = \
         process_parallel(random_indices, evaluate, num_processes=4,
-                         verbose=True, matches1=matches1,
+                         verbose=verbose, matches1=matches1,
                          matches2=matches2, threshold=threshold)
 
     # 4. Based on evaluation function, now contains <len_inliers>, F

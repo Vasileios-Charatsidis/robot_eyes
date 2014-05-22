@@ -85,7 +85,7 @@ def epi_main(args):
     # TODO epi.chaining ?
 
     if args.verbosity > 0:
-        print "Parsed {} files in {} seconds.".format(args.max,
+        print "Parsed {} files in {} seconds.".format(len(img_files),
                                                       time.time() - now)
 
 
@@ -95,16 +95,17 @@ def sfm_main(args):
     '''
     # TODO load pkl files containing inlier featurepoints in images !
     try:
-        points = pickle.load(args.points)
+        import cPickle as pickle
+        pointviewmat = pickle.load(open(args.points, 'rb'))
     except:
         print "Could not load file '{}'".format(args.points)
         return
 
     if args.verbosity > 0:
         print "Applying affine sfm to find 3d model, given a set of" +\
-            "features per image"
+            "features per image '{}'".format(args.points)
 
-    sfm.structure_from_motion(points, args.verbosity)
+    sfm.structure_from_motion(pointviewmat, args.verbosity)
 
 
 if __name__ == "__main__":
@@ -165,6 +166,7 @@ if __name__ == "__main__":
     # Subparser that handles Structuer from motion args
     sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +
                                        "assignment 3")
+    sfm_parser.set_defaults(func=sfm_main)
     # Positional args
     sfm_parser.add_argument('points',
                             help='Pkl file containing found features.')

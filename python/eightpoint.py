@@ -160,6 +160,7 @@ def read_and_crop(img_name, crop, grayscale=True):
     Read an image by its name, and crop it.
     """
     img = cv2.imread(img_name)
+    print img_name
     # TODO enable 1D image cropping
     if crop:
         min_height, max_height, min_width, max_width = crop
@@ -246,7 +247,7 @@ def draw_epipolar_lines(img1, img2, fundamental, matches1, matches2,
         draw_epipolar_line(view, x, l_prime, 0, w1, 0, w1, color)
 
     # Resize for easy display
-    view = cv2.resize(view, (0, 0), fx=0.25, fy=0.25)
+    view = cv2.resize(view, (0, 0), fx=0.5, fy=0.5)
     cv2.imshow("Epipolar lines", view)
     cv2.waitKey()
 

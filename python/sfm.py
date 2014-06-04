@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 import utils
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 import matplotlib.pyplot as plt
@@ -88,7 +89,7 @@ def remove_affine_amb(m, M, S):
     print 'L nearest positive definite\n', L
 
     # Perform cholesky decomposition, update structure and motion matrices
-    C = np.linalg.cholesky(L)
+    C = scipy.linalg.cholesky(L)
     M = np.array(np.dot(M, C), dtype=float)
     S = np.array(np.dot(C.T, S.T).T, dtype=float)
     return M, S

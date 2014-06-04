@@ -1,7 +1,8 @@
 import numpy as np
-import subprocess
-import os
 import utils
+from mpl_toolkits.mplot3d.axes3d import Axes3D
+import matplotlib.pyplot as plt
+
 
 
 def structure_from_motion(pointviewmat, args):
@@ -36,15 +37,7 @@ def structure_from_motion(pointviewmat, args):
     M = np.dot(U, W)
     S = V
 
-    if args.output_file:
-        utils.writepcd(args.output_file, S)
-
-    if not args.no_visualization:
-        print "Opening pclviewer to display results..."
-        subprocess.Popen(["pcl_viewer", args.output_file],
-                         stdout=open(os.devnull, 'w')).wait()
-
-    '''
+    ###################################################
     # Find least squares solution for A L A^T = I d
     super_A = np.zeros((3 * m, 9))
     rhs = np.zeros((3 * m, 1))
@@ -70,19 +63,36 @@ def structure_from_motion(pointviewmat, args):
     #V = V[:3, :]
 
     print 'u', U.shape, 'w', W.shape,'v', V.shape
-
-
     # x = V . W^-1 . U^T b
     d = np.array(np.dot(U.T, rhs), dtype=float)
-    print d.T[0][:9]
-    print W
-    L = np.dot(V, d.T[0][:9] / W)
+    print d, W
+
+    r = sum(W > 1)
+    L = np.dot(V, np.hstack((d.T[0][:r] / W[:r], np.zeros(9 - r))))
     L = np.reshape(L, (3, 3))
-    print L
+    print 'L\n', L
+
+    L = utils.nearPD(L, nit=30)
+    print 'L nearest positive definite\n', L
+    #####################
 
     # Perform cholesky decomposition, update structure and motion matrices
     C = np.linalg.cholesky(L)
-    print C
-    M = np.dot(M, C)
-    S = np.dot(np.linalg.inv(C), S)
-    '''
+    print C.shape
+    M = np.array(np.dot(M, C), dtype=float)
+    print 'M', M.shape
+    print 'S', S.shape
+    S = np.array(np.dot(C.T, S.T).T, dtype=float)
+    print S[:10, :]
+
+    if args.output_file:
+        utils.writepcd(args.output_file, S)
+        if not args.no_visualization:
+            fig = plt.figure(figsize=plt.figaspect(.5))
+            ax1 = fig.add_subplot(121, projection='3d')
+            ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
+
+            #ax2 = fig.add_subplot(212, projection='3d')
+            #ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
+            plt.show()
+

@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import subprocess
 import time
 
 import eightpoint as epi
@@ -42,16 +41,12 @@ def icp_main(args):
         print "Parsed {} files in {} seconds.".format(args.max,
                                                       time.time() - now)
 
-    name = args.output_file
-    utils.writepcd(name, merged)
+    if args.output_file:
+        utils.writepcd(args.output_file, merged)
 
-    if not args.no_visualization:
-        print "Opening pclviewer to display results..."
-        subprocess.Popen(["pcl_viewer", name],
-                         stdout=open(os.devnull, 'w')).wait()
-
-    if not args.output_file:
-        subprocess.call(["rm", name])
+        if not args.no_visualization:
+            print "Opening pclviewer to display results..."
+            utils.showpcd(args.output_file)
 
 
 def epi_main(args):

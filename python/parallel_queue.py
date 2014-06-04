@@ -67,7 +67,7 @@ class Worker(mp.Process):
         output = {}
         for idx, item in iter(self._queue.get, 'STOP'):
             if self._verbose:
-                sys.stdout.write("\rProcessing item {}".format(idx))
+                sys.stdout.write("\rProcessing item {}".format(idx + 1))
                 sys.stdout.flush()
             # TODO some kind of verbosity, preferably using \r
             # Notice that this construction allows adding other data

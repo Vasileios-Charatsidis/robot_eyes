@@ -1,7 +1,8 @@
-from itertools import izip
-import numpy as np
-from itertools import tee
 import pcl
+import os
+import numpy as np
+from itertools import tee, izip
+from subprocess import Popen
 
 
 def readpcd(name):
@@ -14,6 +15,14 @@ def writepcd(name, array):
     p = pcl.PointCloud()
     p.from_array(np.array(array, dtype='float32'))
     p.to_file(name)
+
+
+def showpcd(name, pixelsize=20, color=(255, 255, 200)):
+    Popen(["pcl_viewer",
+           '-ps', '{}'.format(pixelsize),
+           '-pc', '{},{},{}'.format(*color),
+           name],
+          stdout=open(os.devnull, 'w')).wait()
 
 
 def filter_vecs(vectors, distance=1):
@@ -40,3 +49,39 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return izip(a, b)
+
+
+##### nearpd from
+# http://stackoverflow.com/questions/10939213/how-can-i-calculate-the-nearest-
+# positive-semi-definite-matrix
+def _getAplus(A):
+    eigval, eigvec = np.linalg.eig(A)
+    Q = np.matrix(eigvec)
+    xdiag = np.matrix(np.diag(np.maximum(eigval, 0)))
+    return Q*xdiag*Q.T
+
+
+def _getPs(A, W=None):
+    W05 = np.matrix(W**.5)
+    return  W05.I * _getAplus(W05 * A * W05) * W05.I
+
+
+def _getPu(A, W=None):
+    Aret = np.array(A.copy())
+    Aret[W > 0] = np.array(W)[W > 0]
+    return np.matrix(Aret)
+
+
+def nearPD(A, nit=10):
+    n = A.shape[0]
+    W = np.identity(n)
+    # W is the matrix used for the norm (assumed to be Identity matrix here)
+    # the algorithm should work for any diagonal W
+    deltaS = 0
+    Yk = A.copy()
+    for k in range(nit):
+        Rk = Yk - deltaS
+        Xk = _getPs(Rk, W=W)
+        deltaS = Xk - Rk
+        Yk = _getPu(Xk, W=W)
+    return Yk

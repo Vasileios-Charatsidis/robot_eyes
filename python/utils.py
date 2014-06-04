@@ -1,6 +1,19 @@
 from itertools import izip
 import numpy as np
 from itertools import tee
+import pcl
+
+
+def readpcd(name):
+    p = pcl.PointCloud()
+    p.from_file(name)
+    return filter_vecs(np.array(p.to_array(), dtype='float64'))
+
+
+def writepcd(name, array):
+    p = pcl.PointCloud()
+    p.from_array(np.array(array, dtype='float32'))
+    p.to_file(name)
 
 
 def filter_vecs(vectors, distance=1):

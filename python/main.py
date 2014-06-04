@@ -8,6 +8,7 @@ import time
 import eightpoint as epi
 import icp
 import sfm
+import utils
 
 from pretty_plotter import plotter
 
@@ -42,7 +43,7 @@ def icp_main(args):
                                                       time.time() - now)
 
     name = args.output_file
-    icp.writepcd(name, merged)
+    utils.writepcd(name, merged)
 
     if not args.no_visualization:
         print "Opening pclviewer to display results..."

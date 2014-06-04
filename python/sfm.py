@@ -31,6 +31,10 @@ def structure_from_motion(pointviewmat, args):
     M = np.dot(U, W)
     S = V
 
+    print S.shape
+
+
+    '''
     # Find least squares solution for A L A^T = I d
     super_A = np.zeros((3 * m, 9))
     rhs = np.zeros((3 * m, 1))
@@ -71,39 +75,4 @@ def structure_from_motion(pointviewmat, args):
     print C
     M = np.dot(M, C)
     S = np.dot(np.linalg.inv(C), S)
-
-'''
-    affine_problem = LpProblem("Find L that removes ambiguity", LpMaximize)
-    L = {(i, j): LpVariable("L" + str(i) + str(j))
-         for j in xrange(3) for i in xrange(3)}
-    d = 1   #LpVariable("d", lowBound=0.01)
-    affine_problem += L[0, 0]
-    # For easy access later
-    L_row = {}
-    L_col = {}
-    for i in xrange(3):
-        L_row[i] = [L[i, j] for j in xrange(3)]
-        L_col[i] = [L[j, i] for j in xrange(3)]
-
-    for img_idx in xrange(m):
-        # Select the first and second row of affine transformation matrix m
-        a1 = list(M[img_idx * 2, :])
-        a2 = list(M[img_idx * 2 + 1, :])
-
-        affine_problem += \
-            lpDot([lpDot(a1, L_col[i]) for i in xrange(3)], a1) == d
-        affine_problem += \
-            lpDot([lpDot(a2, L_col[i]) for i in xrange(3)], a2) == d
-        affine_problem += \
-            lpDot([lpDot(a1, L_col[i]) for i in xrange(3)], a2) == 0
-
-    affine_problem.solve()
-    print LpStatus[affine_problem.status]
-
-    assert affine_problem.status == 1, "LP failed"
-    L_mat = np.zeros((3, 3))
-    for i in xrange(3):
-        for j in xrange(3):
-            L_mat[i, j] = L[i, j].varValue
-    print L_mat, d.varValue
-'''
+    '''

@@ -8,28 +8,16 @@ import pcl
 from pretty_plotter import plotter
 
 
-def readpcd(name):
-    p = pcl.PointCloud()
-    p.from_file(name)
-    return utils.filter_vecs(np.array(p.to_array(), dtype='float64'))
-
-
-def writepcd(name, array):
-    p = pcl.PointCloud()
-    p.from_array(np.array(array, dtype='float32'))
-    p.to_file(name)
-
-
 def iter_pcds(file_names, subsample_size, max_scenes):
     """
-    Return an iterable of all pcd files, from which we
+    return an iterable of all pcd files, from which we
     take a sample.
     """
     for file_id, file_name in enumerate(file_names):
         # max number of scenes reached
         if file_id == max_scenes:
             break
-        all_points = readpcd(file_name)
+        all_points = utils.readpcd(file_name)
         sample = utils.subsample(all_points, subsample_size) if \
             subsample_size < 1 else all_points
         yield file_id, sample, all_points

@@ -70,7 +70,8 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
 
         if verbose:
             print "Found {} matches.".format(len(matches1))
-            drawmatches(img1, img2, matches1, matches2, verbose)
+            if verbose > 1:
+                drawmatches(img1, img2, matches1, matches2, verbose)
         if normalized:
             unnormalized_m1 = matches1
             unnormalized_m2 = matches2
@@ -103,7 +104,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         tosave.append((matches1, matches2))
 
         # e, e_prime = epipole(F)
-        if verbose:
+        if verbose > 1:
             draw_epipolar_lines(img1, img2, F, matches1, matches2)
 
         # Update
@@ -135,15 +136,16 @@ def construct_pointview_mat(num_images, matches):
     # Create a dummy match for timestep 0
     pointview[-1] = []
     matches = [(matches[0][0], matches[0][0])] + matches
-    for n, (matches1, matches2) in enumerate(matches):
+    # Iterate over found matches, store point correspondences
+    for row, (matches1, matches2) in enumerate(matches):
         for m1, m2 in izip(matches1, matches2):
             m1, m2 = tuple(m1[:2]), tuple(m2[:2])
             # Add to existing column
-            if m1 in pointview[n - 1]:
-                pointview[n][m2].extend(pointview[n - 1][m1])
+            if m1 in pointview[row - 1]:
+                pointview[row][m2].extend(pointview[row - 1][m1])
             # introduce new column
             else:
-                pointview[n][m2].append(point_idx)
+                pointview[row][m2].append(point_idx)
                 point_idx += 1
 
     del pointview[-1]
@@ -332,7 +334,10 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
                   key=lambda tup: len(tup[0]))
     if verbose:
         print "Found F, with {} inliers.".format(len(srtd[-1][0]))
-    return srtd[-1]
+    inliers = srtd[-1][0]
+    matches1 = matches1[inliers]
+    matches2 = matches2[inliers]
+    return inliers, fundamental(matches1, matches2)
 
 
 def fundamental(matches1, matches2):

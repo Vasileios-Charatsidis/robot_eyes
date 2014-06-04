@@ -37,7 +37,7 @@ def icp_main(args):
         now = time.time()
 
     merged = icp.merge(pcd_files, args.merge_method, args.max, args.subsample,
-                       debug=args.verbosity)
+                       verbose=args.verbosity)
     if args.verbosity > 0:
         print "Parsed {} files in {} seconds.".format(args.max,
                                                       time.time() - now)
@@ -106,7 +106,7 @@ def sfm_main(args):
         print "Applying affine sfm to find 3d model, given a set of" +\
             "features per image '{}'".format(args.points)
 
-    sfm.structure_from_motion(pointviewmat, args.verbosity)
+    sfm.structure_from_motion(pointviewmat, args)
 
 
 if __name__ == "__main__":
@@ -176,6 +176,8 @@ if __name__ == "__main__":
     # Optional args
     sfm_parser.add_argument('-o', '--output-file', default="",
                             help="Save the point cloud file")
+    sfm_parser.add_argument('-n', '--no-visualization', action='store_true',
+                            help="Don't display resulting pointcloud")
 
     args = arg_parser.parse_args()
     args.func(args)

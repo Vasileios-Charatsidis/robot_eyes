@@ -1,4 +1,7 @@
 import numpy as np
+import subprocess
+import os
+import utils
 
 
 def structure_from_motion(pointviewmat, args):
@@ -9,10 +12,12 @@ def structure_from_motion(pointviewmat, args):
     m, n, _ = pointviewmat.shape
     persisting_points = [pt_idx for pt_idx in xrange(n) if
                          np.array([0, 0]) not in pointviewmat[:, pt_idx, :]]
-    print "Of {} points".format(n),
+    if args.verbosity:
+        print "Of {} points".format(n),
     pointviewmat = pointviewmat[:, persisting_points, :]
     m, n, _ = pointviewmat.shape
-    print "{} points persist throughout the sequence".format(n)
+    if args.verbosity:
+        print "{} points persist throughout the sequence".format(n)
 
     # Subtract the mean for each image at the same time
     pointviewmat -= np.mean(pointviewmat, axis=1, keepdims=True)
@@ -31,8 +36,13 @@ def structure_from_motion(pointviewmat, args):
     M = np.dot(U, W)
     S = V
 
-    print S.shape
+    if args.output_file:
+        utils.writepcd(args.output_file, S)
 
+    if not args.no_visualization:
+        print "Opening pclviewer to display results..."
+        subprocess.Popen(["pcl_viewer", args.output_file],
+                         stdout=open(os.devnull, 'w')).wait()
 
     '''
     # Find least squares solution for A L A^T = I d

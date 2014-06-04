@@ -22,12 +22,12 @@ def icp_main(args):
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))
 
-    plot_folder = args.plot_folder
+    plot_dir = args.plot_dir
     if None:
         plotter.disable()
     else:
         plotter.enable()
-        plotter.output_folder(plot_folder)
+        plotter.output_dir(plot_dir)
 
     if args.verbosity > 0:
         print "Performing Iterative closest point!"
@@ -61,7 +61,7 @@ def epi_main(args):
     data_set = args.data_dir.strip('/').split('/')[-1]
     img_files = sorted(list(os.path.join(args.data_dir, f)
                             for f in os.listdir(args.data_dir)
-                            if f.endswith('.png')))
+                            if f.endswith('.png')))[::args.jump]
 
     if args.max:
         num_files = len(img_files)
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         epilog="...")
     subparsers = arg_parser.add_subparsers(help='Method to execute:')
 
-    # All methods require a data folder containing pcd/img files
+    # All methods require a data dir containing pcd/img files
     arg_parser.add_argument('-v', '--verbosity', action='count',
                             help="Set verbosity level, " +
                             "default: silent, -v: verbose, -vv: very verbose")
@@ -133,7 +133,7 @@ if __name__ == "__main__":
                             help="Choose whether merges take place " +
                             "after or during estimation")
     # Optional args
-    icp_parser.add_argument('-m', '--max', type=int, default=2,
+    icp_parser.add_argument('-m', '--max', type=int, default=0,
                             help="Maximum number of scenes to read")
     icp_parser.add_argument('-s', '--subsample', type=float, default=1.,
                             help="The proportion of points to sample")
@@ -141,8 +141,8 @@ if __name__ == "__main__":
                             help="Don't display resulting pointcloud")
     icp_parser.add_argument('-o', '--output-file', default="merged.pcd",
                             help="Save the point cloud file")
-    icp_parser.add_argument('-p', '--plot-folder', default=None,
-                            help="Folder to store all plots in")
+    icp_parser.add_argument('-p', '--plot-dir', default=None,
+                            help="Directory to store all plots in")
 
     # Subparser that handles Epipolar geometry args
     epi_parser = subparsers.add_parser('epi', help='Epipolar geometry' +
@@ -156,12 +156,14 @@ if __name__ == "__main__":
     epi_parser.add_argument('-r', '--ransac-iterations', type=int, default=0,
                             help="Number of RANSAC iterations (default: " +
                             "do not use RANSAC")
-    epi_parser.add_argument('-m', '--max', type=int, default=2,
+    epi_parser.add_argument('-m', '--max', type=int, default=0,
                             help="Maximum number of images to read")
     epi_parser.add_argument('-t', '--threshold', type=float, default=1e-3,
                             help="Threshold for ransac")
     epi_parser.add_argument('-o', '--output-file', default="pointviewmat.pkl",
                             help="Save the matches")
+    epi_parser.add_argument('-j', '--jump', type=int, default=1,
+                            help="Don't use every image, but only every j'th")
 
     # Subparser that handles Structuer from motion args
     sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +

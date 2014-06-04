@@ -1,8 +1,11 @@
 #!/usr/bin/env python2
 
 import argparse
+import cPickle as pickle
+import cv2
 import os
 import time
+import numpy as np
 
 import eightpoint as epi
 import icp
@@ -22,12 +25,12 @@ def icp_main(args):
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))
 
-    plot_dir = args.plot_dir
-    if None:
-        plotter.disable()
-    else:
-        plotter.enable()
-        plotter.output_dir(plot_dir)
+    # plot_dir = args.plot_dir
+    # if None:
+    #     plotter.disable()
+    # else:
+    #     plotter.enable()
+    #     plotter.output_dir(plot_dir)
 
     if args.verbosity > 0:
         print "Performing Iterative closest point!"
@@ -35,12 +38,12 @@ def icp_main(args):
         print "Subsampling {}% of data".format(args.subsample*100)
         now = time.time()
 
-    merged = icp.merge(pcd_files, args.merge_method, args.max, args.subsample,
-                       verbose=args.verbosity)
+    merged = icp.merge(pcd_files, args)
+
     if args.verbosity > 0:
         print "Parsed {} files in {} seconds.".format(args.max,
                                                       time.time() - now)
-
+    # Write and/or show output
     if args.output_file:
         utils.writepcd(args.output_file, merged)
 
@@ -59,12 +62,11 @@ def epi_main(args):
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.png')))[::args.jump]
 
-    if args.max:
-        num_files = len(img_files)
-        if args.max < num_files:
-            img_files = img_files[:args.max+1]
-        elif args.verbosity > 0:
-            print "Warning: {} only has {} files.".format(data_set, num_files)
+    num_files = len(img_files)
+    if args.max < num_files:
+        img_files = img_files[:args.max+1]
+    elif args.verbosity > 0:
+        print "Warning: {} only has {} files.".format(data_set, num_files)
 
     if args.verbosity > 0:
         print "Estimating fundamental matrix for dataset {}!".format(data_set)
@@ -75,14 +77,24 @@ def epi_main(args):
             print ".. with {} RANSAC iterations".format(args.ransac_iterations)
         now = time.time()
 
-    epi.eightpoint(img_files, args.normalized, args.ransac_iterations,
-                   data_set, args.output_file, threshold=args.threshold,
-                   verbose=args.verbosity)
-    # TODO epi.chaining ?
+    pv_mat = epi.eightpoint(data_set, img_files, args)
 
     if args.verbosity > 0:
         print "Parsed {} files in {} seconds.".format(len(img_files),
                                                       time.time() - now)
+
+    if args.output_file:
+        print "Saved points in '{}'".format(args.output_file) + \
+            ", which has size {}".format(pv_mat.shape)
+        # True if not np.array([0, 0])
+        if args.verbosity > 1:
+            view = np.array(np.sum(pv_mat, axis=2) ==
+                            np.zeros(pv_mat.shape[:2]),
+                            dtype=int)
+        view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
+        cv2.imshow("Pointviewmat", view)
+        cv2.waitKey()
+        pickle.dump(pv_mat, open(args.output_file, 'wb'))
 
 
 def sfm_main(args):
@@ -129,7 +141,7 @@ if __name__ == "__main__":
                             help="Choose whether merges take place " +
                             "after or during estimation")
     # Optional args
-    icp_parser.add_argument('-m', '--max', type=int, default=0,
+    icp_parser.add_argument('-m', '--max', type=int, default=1e5,
                             help="Maximum number of scenes to read")
     icp_parser.add_argument('-s', '--subsample', type=float, default=1.,
                             help="The proportion of points to sample")
@@ -149,7 +161,7 @@ if __name__ == "__main__":
                             help='Data directory containing images')
     epi_parser.add_argument('-n', '--normalized', action='store_true',
                             help="Use normalized eightpoint")
-    epi_parser.add_argument('-r', '--ransac-iterations', type=int, default=0,
+    epi_parser.add_argument('-r', '--ransac-iterations', type=int, default=1e3,
                             help="Number of RANSAC iterations (default: " +
                             "do not use RANSAC")
     epi_parser.add_argument('-m', '--max', type=int, default=0,

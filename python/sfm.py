@@ -34,8 +34,8 @@ def structure_from_motion(pointviewmat, args):
     V = V[:, :3]
 
     # Create motion and structure matrices from svd
-    M = np.dot(U, W)
-    S = V
+    M = np.dot(U, np.power(W, 0.5))
+    S = np.dot(np.power(W, 0.5), V.T).T
     # M, S = remove_affine_amb(m, M, S)
     if args.output_file:
         utils.writepcd(args.output_file, S)
@@ -44,8 +44,8 @@ def structure_from_motion(pointviewmat, args):
             ax1 = fig.add_subplot(121, projection='3d')
             ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
 
-            #ax2 = fig.add_subplot(212, projection='3d')
-            #ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
+            ax2 = fig.add_subplot(122, projection='3d')
+            ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
             plt.show()
 
 

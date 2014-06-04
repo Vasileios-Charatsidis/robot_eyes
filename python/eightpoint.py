@@ -30,8 +30,7 @@ def estimate_camera_matrices(img_files, normalized, ransac_iterations,
     # TODO call eightpoint correctly.
 
 
-def eightpoint(img_files, normalized, ransac_iterations=None,
-               data_set="", output="", threshold=1e-3,  verbose=False):
+def eightpoint(data_set_name, img_files, args):
     """
     Perform the eightpoint algorithm for a given set of images.
     Normalized is a boolean indicating whether we should use the
@@ -46,7 +45,7 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
     search_params = {'checks': 50}
 
     # For bear, crop image to 200:1400, 600:1800
-    if data_set == "TeddyBear":
+    if data_set_name == "TeddyBear":
         crop = [200, 1400, 600, 1800]
     else:  # For house, don't crop image? TODO
         crop = False
@@ -68,35 +67,35 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         # Get arrays of keypoints that match (and filter out bad ones)
         matches1, matches2 = filter_matches(kp1, kp2, matches, ratio=0.5)
 
-        if verbose:
+        if args.verbosity:
             print "Found {} matches.".format(len(matches1))
-            if verbose > 1:
-                drawmatches(img1, img2, matches1, matches2, verbose)
-        if normalized:
+            if args.verbosity > 1:
+                drawmatches(img1, img2, matches1, matches2, args.verbosity)
+        if args.normalized:
             unnormalized_m1 = matches1
             unnormalized_m2 = matches2
-            matches1, T1 = normalize(matches1, verbose)
-            matches2, T2 = normalize(matches2, verbose)
+            matches1, T1 = normalize(matches1, args.verbosity)
+            matches2, T2 = normalize(matches2, args.verbosity)
 
         # Compute fundamental matrix!
         # FIXME flow of program is just.. ugly
-        if not ransac_iterations:
+        if not args.ransac_iterations:
             F = fundamental(matches1, matches2)
         else:
             inliers, F = \
                 fundamental_ransac(matches1, matches2,
-                                   ransac_iterations, threshold,
-                                   verbose)
+                                   args.ransac_iterations, args.threshold,
+                                   args.verbosity)
         # finish normalization, reassign matches for visualisation
-        if normalized:
+        if args.normalized:
             F = np.dot(T2.T, np.dot(F, T1))
             matches1 = unnormalized_m1
             matches2 = unnormalized_m2
 
-        if verbose:
+        if args.verbosity:
             print 'F:', F
 
-        if ransac_iterations:
+        if args.ransac_iterations:
             matches1 = matches1[inliers]
             matches2 = matches2[inliers]
 
@@ -104,25 +103,16 @@ def eightpoint(img_files, normalized, ransac_iterations=None,
         tosave.append((matches1, matches2))
 
         # e, e_prime = epipole(F)
-        if verbose > 1:
+        if args.verbosity > 1:
             draw_epipolar_lines(img1, img2, F, matches1, matches2)
 
         # Update
         img1, kp1, des1 = img2, kp2, des2
 
-    if output:
-        # Use all matches found so far to construct pointview mat
-        pv_mat = construct_pointview_mat(len(img_files), tosave)
-        print "Saved points in '{}'".format(output) + \
-            ", which has size {}".format(pv_mat.shape)
 
-        # True if not np.array([0, 0])
-        view = np.array(np.sum(pv_mat, axis=2) == np.zeros(pv_mat.shape[:2]),
-                        dtype=int)
-        view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
-        cv2.imshow("Pointviewmat", view)
-        cv2.waitKey()
-        pickle.dump(pv_mat, open(output, 'wb'))
+    # Use all matches found so far to construct pointview mat
+    pv_mat = construct_pointview_mat(len(img_files), tosave)
+    return pv_mat
 
 
 def construct_pointview_mat(num_images, matches):

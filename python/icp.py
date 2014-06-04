@@ -52,7 +52,6 @@ def compute_rms(source, target, flann=None):
     if flann:
         results, dists = flann.nn_index(target, num_neighbors=1,
                                         checks=120)
-
     else:
         flann = FLANN()
         results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
@@ -60,7 +59,7 @@ def compute_rms(source, target, flann=None):
     return math.sqrt(sum(dists) / float(len(dists)))
 
 
-def merge(pcd_files, method, max_scenes, subsample_size, verbosity):
+def merge(pcd_files, args):
     '''
     Estimate rotation translation for every consecutive frame. Use
     the estimates to create one set of points, by transforming each
@@ -83,9 +82,12 @@ def merge(pcd_files, method, max_scenes, subsample_size, verbosity):
     # Homogeneous transformation matrix
     T_c = homogenize_transformation(np.eye(3), np.zeros((1, 3)))
 
-    for file_id, f2, f2_all in iter_pcds(pcd_files[1:], subsample_size,
-                                         max_scenes):
-        if verbosity > 0:
+    method = args.merge_method
+
+    for file_id, f2, f2_all in iter_pcds(pcd_files[1:],
+                                         subsample_size=args.subsample,
+                                         max_scenes=args.max):
+        if args.verbosity > 0:
             print "Estimating R, t from {} to {}".format(file_id + 1, file_id)
 
         # Transform f2 by all previous transformations
@@ -95,24 +97,24 @@ def merge(pcd_files, method, max_scenes, subsample_size, verbosity):
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
             R, t, T, rms_subsample, flann_idx = \
-                icp(f1, f2, verbosity=verbosity)
+                icp(f1, f2, verbosity=args.verbosity)
         elif method == 'merge_during':
             R, t, T, rms_subsample, flann_idx = \
-                icp(merged, f2, verbosity=verbosity)
+                icp(merged, f2, verbosity=args.verbosity)
 
         # Transform f2 to merged given R and t
         transformed_f2 = np.dot(R, f2_all.T).T + t
 
         # Compute rms for this scene transitions, for the whole set
-        if subsample_size < 1:
+        if args.subsample < 1:
             rms = compute_rms(merged, transformed_f2, flann_idx)
         else:
             rms = rms_subsample
 
-        if verbosity > 0:
+        if args.verbosity:
             print "\rRMS for the whole scene:", rms
 
-        plotter.collect_data(plotter.DATASET_RMS_MERGE, rms, verbosity)
+        plotter.collect_data(plotter.DATASET_RMS_MERGE, rms, args.verbosity)
 
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f2))
@@ -122,6 +124,7 @@ def merge(pcd_files, method, max_scenes, subsample_size, verbosity):
 
         # Move to the next scene (not necessary for merge_during)
         f1 = f2
+
     return merged
 
 

@@ -36,9 +36,21 @@ def structure_from_motion(pointviewmat, args):
     # Create motion and structure matrices from svd
     M = np.dot(U, W)
     S = V
+    # M, S = remove_affine_amb(m, M, S)
+    if args.output_file:
+        utils.writepcd(args.output_file, S)
+        if not args.no_visualization:
+            fig = plt.figure(figsize=plt.figaspect(.5))
+            ax1 = fig.add_subplot(121, projection='3d')
+            ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
 
-    ###################################################
-    # Find least squares solution for A L A^T = I d
+            #ax2 = fig.add_subplot(212, projection='3d')
+            #ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
+            plt.show()
+
+
+def remove_affine_amb(m, M, S):
+    ''' Find least squares solution for A L A^T = I d '''
     super_A = np.zeros((3 * m, 9))
     rhs = np.zeros((3 * m, 1))
     for m_idx in xrange(m):
@@ -74,25 +86,9 @@ def structure_from_motion(pointviewmat, args):
 
     L = utils.nearPD(L, nit=30)
     print 'L nearest positive definite\n', L
-    #####################
 
     # Perform cholesky decomposition, update structure and motion matrices
     C = np.linalg.cholesky(L)
-    print C.shape
     M = np.array(np.dot(M, C), dtype=float)
-    print 'M', M.shape
-    print 'S', S.shape
     S = np.array(np.dot(C.T, S.T).T, dtype=float)
-    print S[:10, :]
-
-    if args.output_file:
-        utils.writepcd(args.output_file, S)
-        if not args.no_visualization:
-            fig = plt.figure(figsize=plt.figaspect(.5))
-            ax1 = fig.add_subplot(121, projection='3d')
-            ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
-
-            #ax2 = fig.add_subplot(212, projection='3d')
-            #ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
-            plt.show()
-
+    return M, S

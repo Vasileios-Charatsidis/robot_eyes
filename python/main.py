@@ -15,6 +15,22 @@ import utils
 from pretty_plotter import plotter
 
 
+def benchmark_icp(data_dir, max_num=20):
+    arg_parser = setup_argparser()
+    all_rms = {}
+    for subsample in [0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1]:
+        for merge_method in ("merge_after", "merge_during"):
+            print "\n\nMethod {}, subsample {}".format(merge_method, subsample)
+            args = arg_parser.parse_args(['-v', 'icp', data_dir,
+                                          merge_method,
+                                          '-m', str(max_num),
+                                          '-s', str(subsample),
+                                          '-n',
+                                          '-o', 'pcdfiles/experiment'])
+            all_rms[merge_method, subsample] = args.func(args)
+    pickle.dump(all_rms, open('pklfiles/benchmark.pkl', 'wb'))
+
+
 def icp_main(args):
     '''
     Responsible for collecting pcd files from the given directory,
@@ -36,20 +52,25 @@ def icp_main(args):
         print "Performing Iterative closest point!"
         print "Using method '{}' for merging.".format(args.merge_method)
         print "Subsampling {}% of data".format(args.subsample*100)
-        now = time.time()
 
-    merged = icp.merge(pcd_files, args)
+    now = time.time()
+    merged, all_rms = icp.merge(pcd_files, args)
+    time_taken = time.time() - now
 
     if args.verbosity > 0:
-        print "Parsed {} files in {} seconds.".format(args.max,
-                                                      time.time() - now)
+        print "Parsed {} files in {} seconds.".format(args.max, time_taken)
     # Write and/or show output
     if args.output_file:
-        utils.writepcd(args.output_file, merged)
+        output_name = "{}_max{max}_method{method}_subsample{subsample}.pcd".\
+            format(args.output_file, max=args.max, method=args.merge_method,
+                   subsample=min(1.0, max(0.0, args.subsample)))
+        print "Saved pcd file as '{}'".format(output_name)
+        utils.writepcd(output_name, merged)
 
         if not args.no_visualization:
             print "Opening pclviewer to display results..."
-            utils.showpcd(args.output_file)
+            utils.showpcd(output_name)
+    return all_rms, time_taken
 
 
 def epi_main(args):
@@ -116,11 +137,12 @@ def sfm_main(args):
     sfm.structure_from_motion(pointviewmat, args)
 
 
-if __name__ == "__main__":
-    plotter.disable()  # Will be enabled by icp_main or epi_main, if needed
+
+def setup_argparser():
+    # plotter.disable()  # Will be enabled by icp_main or epi_main, if needed
 
     arg_parser = argparse.ArgumentParser(
-        description="Implementation of ICP.",
+        description="Implementation of ICP, eightpoint, SfM.",
         epilog="...")
     subparsers = arg_parser.add_subparsers(help='Method to execute:')
 
@@ -147,8 +169,8 @@ if __name__ == "__main__":
                             help="The proportion of points to sample")
     icp_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display resulting pointcloud")
-    icp_parser.add_argument('-o', '--output-file', default="merged.pcd",
-                            help="Save the point cloud file")
+    icp_parser.add_argument('-o', '--output-file', default="merged",
+                            help="Name used to save the point cloud file")
     icp_parser.add_argument('-p', '--plot-dir', default=None,
                             help="Directory to store all plots in")
 
@@ -169,7 +191,7 @@ if __name__ == "__main__":
     epi_parser.add_argument('-t', '--threshold', type=float, default=1e-3,
                             help="Threshold for ransac")
     epi_parser.add_argument('-o', '--output-file', default="pointviewmat.pkl",
-                            help="Save the matches")
+                            help="Name used to save the matches")
     epi_parser.add_argument('-j', '--jump', type=int, default=1,
                             help="Don't use every image, but only every j'th")
 
@@ -182,9 +204,13 @@ if __name__ == "__main__":
                             help='Pkl file containing found features.')
     # Optional args
     sfm_parser.add_argument('-o', '--output-file', default="",
-                            help="Save the point cloud file")
+                            help="Name used to save the point cloud file")
     sfm_parser.add_argument('-n', '--no-visualization', action='store_true',
                             help="Don't display resulting pointcloud")
 
+    return arg_parser
+
+if __name__=="__main__":
+    arg_parser = setup_argparser()
     args = arg_parser.parse_args()
     args.func(args)

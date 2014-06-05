@@ -83,6 +83,7 @@ def merge(pcd_files, args):
     T_c = homogenize_transformation(np.eye(3), np.zeros((1, 3)))
 
     method = args.merge_method
+    all_rms = []
 
     for file_id, f2, f2_all in iter_pcds(pcd_files[1:],
                                          subsample_size=args.subsample,
@@ -110,6 +111,7 @@ def merge(pcd_files, args):
             rms = compute_rms(merged, transformed_f2, flann_idx)
         else:
             rms = rms_subsample
+        all_rms.append(rms)
 
         if args.verbosity:
             print "\rRMS for the whole scene:", rms
@@ -125,7 +127,7 @@ def merge(pcd_files, args):
         # Move to the next scene (not necessary for merge_during)
         f1 = f2
 
-    return merged
+    return merged, all_rms
 
 
 def icp(source, target, D=3, verbosity=0, epsilon=0.000001):

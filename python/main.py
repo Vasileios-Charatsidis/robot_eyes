@@ -106,18 +106,30 @@ def epi_main(args):
         print "Parsed {} files in {} seconds.".format(len(img_files),
                                                       time.time() - now)
 
-    if args.output_file:
-        print "Saved points in '{}'".format(args.output_file) + \
-            ", which has size {}".format(pv_mat.shape)
-        # True if not np.array([0, 0])
-        if args.verbosity > 1:
-            view = np.array(np.sum(pv_mat, axis=2) ==
-                            np.zeros(pv_mat.shape[:2]),
-                            dtype=int)
-            view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
-            cv2.imshow("Pointviewmat", view)
-            cv2.waitKey()
-        pickle.dump(pv_mat, open(args.output_file, 'wb'))
+    if not args.output_file:
+        output_file = "epi"
+        output_file += "_t{}".format(args.threshold)
+        if args.normalized:
+            output_file += "_n"
+        if args.ransac_iterations:
+            output_file += "_r{}".format(args.ransac_iterations)
+        if args.jump:
+            output_file += "_j{}".format(args.jump)
+        output_file += ".pkl"
+    else:
+        output_file = args.output_file
+
+    print "Saved points in '{}'".format(output_file) + \
+        ", which has size {}".format(pv_mat.shape)
+    # True if not np.array([0, 0])
+    if args.verbosity > 1:
+        view = np.array(np.sum(pv_mat, axis=2) ==
+                        np.zeros(pv_mat.shape[:2]),
+                        dtype=int)
+        view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
+        cv2.imshow("Pointviewmat", view)
+        cv2.waitKey()
+    pickle.dump(pv_mat, open(output_file, 'wb'))
 
 
 def sfm_main(args):
@@ -185,14 +197,14 @@ def setup_argparser():
                             help='Data directory containing images')
     epi_parser.add_argument('-n', '--normalized', action='store_true',
                             help="Use normalized eightpoint")
-    epi_parser.add_argument('-r', '--ransac-iterations', type=int, default=1e3,
+    epi_parser.add_argument('-r', '--ransac-iterations', type=int,
                             help="Number of RANSAC iterations (default: " +
                             "do not use RANSAC")
     epi_parser.add_argument('-m', '--max', type=int, default=0,
                             help="Maximum number of images to read")
     epi_parser.add_argument('-t', '--threshold', type=float, default=1e-3,
                             help="Threshold for ransac")
-    epi_parser.add_argument('-o', '--output-file', default="pointviewmat.pkl",
+    epi_parser.add_argument('-o', '--output-file',
                             help="Name used to save the matches")
     epi_parser.add_argument('-j', '--jump', type=int, default=1,
                             help="Don't use every image, but only every j'th")

@@ -84,8 +84,10 @@ def epi_main(args):
                             if f.endswith('.png')))[::args.jump]
 
     num_files = len(img_files)
-    if args.max < num_files:
-        img_files = img_files[:args.max+1]
+    if args.max:
+        if args.max < num_files:
+            img_files = img_files[:args.max+1]
+
     elif args.verbosity > 0:
         print "Warning: {} only has {} files.".format(data_set, num_files)
 

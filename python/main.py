@@ -112,9 +112,9 @@ def epi_main(args):
             view = np.array(np.sum(pv_mat, axis=2) ==
                             np.zeros(pv_mat.shape[:2]),
                             dtype=int)
-        view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
-        cv2.imshow("Pointviewmat", view)
-        cv2.waitKey()
+            view = cv2.resize(view + 0.0001, (0, 0), fx=3, fy=3)
+            cv2.imshow("Pointviewmat", view)
+            cv2.waitKey()
         pickle.dump(pv_mat, open(args.output_file, 'wb'))
 
 

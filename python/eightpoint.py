@@ -56,7 +56,8 @@ def eightpoint(data_set_name, img_files, args):
 
     tosave = []
 
-    for n, img2_name in enumerate(img_files[1:]):
+    # Add the first file to the end for img n to img 0 matching
+    for n, img2_name in enumerate(img_files[1:] + [img_files[0]]):
         # Read the next file
         img2 = read_and_crop(img2_name, crop, grayscale=True)
         kp2, des2 = sift.detectAndCompute(img2, None)
@@ -70,7 +71,8 @@ def eightpoint(data_set_name, img_files, args):
         if args.verbosity:
             print "Found {} matches.".format(len(matches1))
             if args.verbosity > 1:
-                drawmatches(img1, img2, matches1, matches2, args.verbosity)
+                drawmatches("Matches", img1, img2, matches1, matches2,
+                            args.verbosity)
         if args.normalized:
             unnormalized_m1 = matches1
             unnormalized_m2 = matches2
@@ -98,6 +100,8 @@ def eightpoint(data_set_name, img_files, args):
         if args.ransac_iterations:
             matches1 = matches1[inliers]
             matches2 = matches2[inliers]
+            drawmatches("Inliers", img1, img2, matches1, matches2,
+                        args.verbosity)
 
         # Save matches!
         tosave.append((matches1, matches2))
@@ -111,7 +115,7 @@ def eightpoint(data_set_name, img_files, args):
 
 
     # Use all matches found so far to construct pointview mat
-    pv_mat = construct_pointview_mat(len(img_files), tosave)
+    pv_mat = construct_pointview_mat(len(img_files) + 1, tosave)
     return pv_mat
 
 
@@ -192,7 +196,8 @@ def normalize(points, verbosity):
 
     if verbosity > 1:
         print "Normalized points set, centroid is now {}".format(
-            np.mean(normalized_points, axis=0)) + ", should be close to zero."
+            np.mean(normalized_points, axis=0)[:2]) + \
+            ", should be close to zero."
         print "Mean distance to centroid is {}, should be sqrt(2)".format(
             np.mean(np.sqrt(np.sum(np.power(normalized_points[:, :2], 2),
                                    axis=1))))
@@ -244,7 +249,7 @@ def draw_epipolar_lines(img1, img2, fundamental, matches1, matches2,
     cv2.waitKey()
 
 
-def drawmatches(img1, img2, kp1, kp2, verbosity=0):
+def drawmatches(name, img1, img2, kp1, kp2, verbosity=0):
     """
     Since drawMatches is not yet included in opencv 2.4.9, we
     added a simple function that visualises matches in different
@@ -277,8 +282,8 @@ def drawmatches(img1, img2, kp1, kp2, verbosity=0):
                   int(p2[1])),
                  color)
     # Resize for easy display
-    view = cv2.resize(view, (0, 0), fx=0.25, fy=0.25)
-    cv2.imshow("Matches", view)
+    view = cv2.resize(view, (0, 0), fx=0.5, fy=0.5)
+    cv2.imshow(name, view)
     cv2.waitKey()
 
 

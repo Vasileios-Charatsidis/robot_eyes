@@ -1,9 +1,10 @@
 import numpy as np
-import scipy.linalg
 import utils
-from mpl_toolkits.mplot3d.axes3d import Axes3D
-import matplotlib.pyplot as plt
+import sys
 
+from mpl_toolkits.mplot3d.axes3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib.pyplot as plt
 
 
 def structure_from_motion(pointviewmat, args):
@@ -35,19 +36,45 @@ def structure_from_motion(pointviewmat, args):
     V = V[:, :3]
 
     # Create motion and structure matrices from svd
-    M = np.dot(U, np.power(W, 0.5))
+    # M = np.dot(U, np.power(W, 0.5))
     S = np.dot(np.power(W, 0.5), V.T).T
+
     # M, S = remove_affine_amb(m, M, S)
     if args.output_file:
         utils.writepcd(args.output_file, S)
-        if not args.no_visualization:
-            fig = plt.figure(figsize=plt.figaspect(.5))
-            ax1 = fig.add_subplot(121, projection='3d')
-            ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
+    if not args.no_visualization:
+        fig = plt.figure(figsize=plt.figaspect(.5))
+        ax1 = fig.add_subplot(121, projection='3d')
+        ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
 
-            ax2 = fig.add_subplot(122, projection='3d')
-            ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
-            plt.show()
+        ax2 = fig.add_subplot(122, projection='3d')
+        ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
+
+        #triangulate(S)
+        plt.show()
+
+
+def triangulate(points):
+    '''Find all combinations of points'''
+    ax = Axes3D(plt.figure())
+
+    mesh_idx = 0
+    for idx1, pt1 in enumerate(points):
+        for idx2, pt2 in enumerate(points[idx1 + 1:, :]):
+            for pt3 in points[idx1 + idx2 + 2:, :]:
+
+                mesh = (pt1, pt2, pt3)
+                sys.stdout.write('\r {}'.format(mesh_idx))
+                sys.stdout.flush()
+                mesh_idx += 1
+
+                tri = Poly3DCollection([mesh])
+                ax.add_collection3d(tri)
+    ax.set_xlim((min(points[:, 0]), max(points[:, 0])))
+    ax.set_ylim((min(points[:, 1]), max(points[:, 1])))
+    ax.set_zlim((min(points[:, 2]), max(points[:, 2])))
+    plt.show()
+    return ax
 
 
 def remove_affine_amb(m, M, S):
@@ -70,12 +97,12 @@ def remove_affine_amb(m, M, S):
         # rhs is 0 by default
 
     U, W, V = np.linalg.svd(super_A)
-    # Enforce rank 3
-    #U = U[:3, :9]
-    #W = np.diag(W[:])
-    #V = V[:3, :]
+    # Enforce rank 3 ?!
+    # U = U[:3, :9]
+    # W = np.diag(W[:])
+    # V = V[:3, :]
 
-    print 'u', U.shape, 'w', W.shape,'v', V.shape
+    print 'u', U.shape, 'w', W.shape, 'v', V.shape
     # x = V . W^-1 . U^T b
     d = np.array(np.dot(U.T, rhs), dtype=float)
     print d, W
@@ -89,7 +116,7 @@ def remove_affine_amb(m, M, S):
     print 'L nearest positive definite\n', L
 
     # Perform cholesky decomposition, update structure and motion matrices
-    C = scipy.linalg.cholesky(L)
+    C = np.linalg.cholesky(L)
     M = np.array(np.dot(M, C), dtype=float)
     S = np.array(np.dot(C.T, S.T).T, dtype=float)
     return M, S

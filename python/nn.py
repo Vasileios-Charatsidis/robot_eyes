@@ -2,9 +2,8 @@ from pyflann import FLANN
 import numpy
 
 class NN:
-    def __init__(self, n_trees=3, default_checks=30):
+    def __init__(self, n_trees=3):
         self.__n_trees = n_trees
-        self.__default_checks = default_checks
         self.__FLANNs = []
         self.__clouds = []
 
@@ -14,7 +13,7 @@ class NN:
         flann.build_index(points, algorithm='kdtree', trees=self.__n_trees)
         self.__FLANNs.append(flann)
 
-    def match(self, points, checks=default_checks):
+    def match(self, points, checks=30):
         results = [None] * points.shape[0]
         dists = numpy.repeat(numpy.infty, points.shape[0])
         for j, flann in enumerate(self.__FLANNs):

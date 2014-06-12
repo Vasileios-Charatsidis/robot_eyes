@@ -4,8 +4,6 @@ from pyflann import FLANN
 import sys
 import utils
 
-from pretty_plotter import plotter
-
 
 def iter_pcds(file_names, subsample_size, max_scenes):
     """
@@ -72,8 +70,7 @@ def merge(pcd_files, args):
     and find matches for the entire merged set.
 
     This will take much longer than the 'regular' process, since the
-    target set will grow every iteration. Should we check the target
-    for correspondences in the source instead?
+    target set will grow every iteration.
     '''
     f1 = utils.readpcd(pcd_files[0])
     # Initialize merged as the points in the first frame
@@ -89,7 +86,8 @@ def merge(pcd_files, args):
                                          subsample_size=args.subsample,
                                          max_scenes=args.max):
         if args.verbosity > 0:
-            print "Estimating R, t from {} to {}".format(file_id + 1, file_id)
+            print "Estimating R, t from {} to {}".format(file_id + args.jump,
+                                                         file_id)
 
         # Transform f2 by all previous transformations
         R_c, t_c = dehomogenize_transformation(T_c)
@@ -115,8 +113,6 @@ def merge(pcd_files, args):
 
         if args.verbosity:
             print "\rRMS for the whole scene:", rms
-
-        plotter.collect_data(plotter.DATASET_RMS_MERGE, rms, args.verbosity)
 
         # Add the transformed set of points to the total set
         merged = np.vstack((merged, transformed_f2))
@@ -146,17 +142,11 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
     '''
     flann = FLANN()
 
-    # source_h = np.hstack((source, np.ones((source.shape[0], 1))))
-    # unused: target_h = np.hstack((target, np.ones((target.shape[0], 1)))).T
-
     # init R as identity, t as zero
     R = np.eye(D, dtype='float64')
     t = np.zeros((1, D), dtype='float64')
     T = homogenize_transformation(R, t)
     transformed_target = target
-
-    # centroid_target = np.mean(target, axis=0)
-    # centroid_source = np.mean(source, axis=0)
 
     # Build index beforehand for faster querying
     flann.build_index(source, algorithm='kdtree', trees=10)
@@ -181,18 +171,15 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
 
         # Compute new RMS
         rms_new = math.sqrt(sum(dists) / float(len(dists)))
-        plotter.collect_data(plotter.DATASET_RMS_ICP, rms_new, verbosity)
 
         # Give feedback if necessary
         if verbosity > 0:
             sys.stdout.write("\rRMS: {}".format(rms_new))
             sys.stdout.flush()
-            if verbosity > 1:
-                sys.stdout.write("\nTransformation:\n{}\n".format(T))
-                sys.stdout.flush()
 
         # We find this case some times, but are not sure if it should be
-        # possible
+        # possible. Is it possible for the RMS of a (sub)set of points to
+        # increase?
         # assert rms > rms_new, "RMS was not minimized?"
 
         # Check threshold
@@ -222,12 +209,13 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
             centroid_selected_source
 
         # Combine transformations so far with new found R and t
-        # Note: Latest transformation should be on the inside of the equation
+        # Note: Latest transformation should be on inside (r) of the equation
         T = np.dot(T, homogenize_transformation(R, t))
 
         if verbosity > 2:
             try:
-                if raw_input() == "q":
+                if raw_input("Enter 'q' to quit, or anything else to" +
+                             "continue") == "q":
                     sys.exit(0)
             except EOFError:
                 print("")
@@ -239,30 +227,3 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
     # Unpack the built transformation matrix
     R, t = dehomogenize_transformation(T)
     return R, t, T, rms_new, flann
-
-
-def rotation_matrix(axis, theta):
-    '''
-    Given an axis and an angle, create a rotation matrix
-    that can be used to rotate vectors around that axis by
-    that angle.
-
-    Taken from :
-    http://stackoverflow.com/questions/6802577/python-rotation-of-3d-vector
-    '''
-    axis = axis / math.sqrt(np.dot(axis, axis))
-    a = math.cos(theta / 2)
-    b, c, d = -axis * math.sin(theta / 2)
-    return np.array([[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d+a*c)],
-                     [2*(b*c+a*d), a*a+c*c-b*b-d*d, 2*(c*d-a*b)],
-                     [2*(b*d-a*c), 2*(c*d+a*b), a*a+d*d-b*b-c*c]])
-
-
-if __name__ == "__main__":
-    R = rotation_matrix(np.array([1, 1, 1]), theta=0.1)
-    print R
-    pcd1 = np.array([[1, 0, 0],
-                     [0, 1, 0],
-                     [0.5, 0.5, 0]], dtype=float)
-    pcd2 = np.dot(R, pcd1) + np.array([[3, 1, 2]])
-    icp(pcd1, pcd2, verbosity=3)

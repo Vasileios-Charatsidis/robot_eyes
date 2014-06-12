@@ -3,6 +3,16 @@ import os
 import numpy as np
 from itertools import tee, izip
 from subprocess import Popen
+import cv2
+
+
+def resize_and_display(window_name, image, resize_x, resize_y):
+    '''
+    Just as the name says: Resize and display an image using cv2.
+    '''
+    view = cv2.resize(image, (0, 0), fx=resize_x, fy=resize_y)
+    cv2.imshow(window_name, view)
+    cv2.waitKey()
 
 
 def readpcd(name):
@@ -51,7 +61,7 @@ def pairwise(iterable):
     return izip(a, b)
 
 
-##### nearpd from
+# nearpd from
 # http://stackoverflow.com/questions/10939213/how-can-i-calculate-the-nearest-
 # positive-semi-definite-matrix
 def _getAplus(A):
@@ -63,7 +73,7 @@ def _getAplus(A):
 
 def _getPs(A, W=None):
     W05 = np.matrix(W**.5)
-    return  W05.I * _getAplus(W05 * A * W05) * W05.I
+    return W05.I * _getAplus(W05 * A * W05) * W05.I
 
 
 def _getPu(A, W=None):

@@ -1,9 +1,11 @@
-import numpy as np
-from itertools import izip
-import math
 import cv2
-import cPickle as pickle
+import numpy as np
+import math
+
 from collections import defaultdict
+from itertools import izip
+
+from utils import resize_and_display
 
 
 def epipole(fund):
@@ -109,10 +111,8 @@ def eightpoint(data_set_name, img_files, args):
         # e, e_prime = epipole(F)
         if args.verbosity > 1:
             draw_epipolar_lines(img1, img2, F, matches1, matches2)
-
         # Update
         img1, kp1, des1 = img2, kp2, des2
-
 
     # Use all matches found so far to construct pointview mat
     pv_mat = construct_pointview_mat(len(img_files) + 1, tosave)
@@ -244,9 +244,7 @@ def draw_epipolar_lines(img1, img2, fundamental, matches1, matches2,
         draw_epipolar_line(view, x, l_prime, 0, w1, 0, w1, color)
 
     # Resize for easy display
-    view = cv2.resize(view, (0, 0), fx=0.5, fy=0.5)
-    cv2.imshow("Epipolar lines", view)
-    cv2.waitKey()
+    resize_and_display("Epipolar lines", view, 0.5, 0.5)
 
 
 def drawmatches(name, img1, img2, kp1, kp2, verbosity=0):
@@ -282,9 +280,7 @@ def drawmatches(name, img1, img2, kp1, kp2, verbosity=0):
                   int(p2[1])),
                  color)
     # Resize for easy display
-    view = cv2.resize(view, (0, 0), fx=0.5, fy=0.5)
-    cv2.imshow(name, view)
-    cv2.waitKey()
+    resize_and_display(name, view, 0.5, 0.5)
 
 
 def fundamental_ransac(matches1, matches2, ransac_iterations,

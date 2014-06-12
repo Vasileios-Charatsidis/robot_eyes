@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from pyflann import FLANN
+from nn import NN
 import sys
 import utils
 
@@ -40,20 +40,19 @@ def dehomogenize_transformation(T):
     return R, t
 
 
-def compute_rms(source, target, flann=None):
+def compute_rms(source, target, nn=None):
     '''
     Make a single call to FLANN rms.
 
     If a flannobject with prebuilt index is given, use that,
     otherwise, do a full search.
     '''
-    if flann:
-        results, dists = flann.nn_index(target, num_neighbors=1,
-                                        checks=120)
+    if nn:
+        results, dists = nn.match(target)
     else:
-        flann = FLANN()
-        results, dists = flann.nn(source, target, algorithm='kdtree', trees=10,
-                                  checks=120, num_neighbors=1)
+        nn = NN()
+        nn.add(source)
+        results, dists = nn.match(target)
     return math.sqrt(sum(dists) / float(len(dists)))
 
 
@@ -95,10 +94,10 @@ def merge(pcd_files, args):
 
         # f1 and f2 are now numpy arrays waiting to be used
         if method == 'merge_after':
-            R, t, T, rms_subsample, flann_idx = \
+            R, t, T, rms_subsample, nn_idx = \
                 icp(f1, f2, verbosity=args.verbosity)
         elif method == 'merge_during':
-            R, t, T, rms_subsample, flann_idx = \
+            R, t, T, rms_subsample, nn_idx = \
                 icp(merged, f2, verbosity=args.verbosity)
 
         # Transform f2 to merged given R and t
@@ -106,7 +105,7 @@ def merge(pcd_files, args):
 
         # Compute rms for this scene transitions, for the whole set
         if args.subsample < 1:
-            rms = compute_rms(merged, transformed_f2, flann_idx)
+            rms = compute_rms(merged, transformed_f2, nn_idx)
         else:
             rms = rms_subsample
         all_rms.append(rms)
@@ -140,7 +139,7 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
     In other words: Each new point gets matched to an old point. This is
     quite intuitive, as the set of source points may be (much) larger.
     '''
-    flann = FLANN()
+    nn = NN()
 
     # init R as identity, t as zero
     R = np.eye(D, dtype='float64')
@@ -149,7 +148,7 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
     transformed_target = target
 
     # Build index beforehand for faster querying
-    flann.build_index(source, algorithm='kdtree', trees=10)
+    nn.add(source)
 
     # Initialize rms to bs values
     rms = 2
@@ -166,8 +165,7 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
 
         # Use flann to find nearest neighbours. Note that because of index it
         # means 'for each transformed_target find the corresponding source'
-        results, dists = flann.nn_index(transformed_target, num_neighbors=1,
-                                        checks=120)
+        results, dists = nn.match(transformed_target)
 
         # Compute new RMS
         rms_new = math.sqrt(sum(dists) / float(len(dists)))
@@ -187,7 +185,7 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
             break
 
         # Use array slicing to get the correct targets
-        selected_source = source[results, :]
+        selected_source = nn.get(results)
         centroid_selected_source = np.mean(selected_source, axis=0)
 
         # Compute covariance, perform SVD using Kabsch algorithm
@@ -226,4 +224,4 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
 
     # Unpack the built transformation matrix
     R, t = dehomogenize_transformation(T)
-    return R, t, T, rms_new, flann
+    return R, t, T, rms_new, nn

@@ -2,17 +2,19 @@ from pyflann import FLANN
 import numpy
 
 class NN:
-    def __init__(self):
+    def __init__(self, n_trees=3, default_checks=30):
+        self.__n_trees = n_trees
+        self.__default_checks = default_checks
         self.__FLANNs = []
         self.__clouds = []
 
     def add(self, points):
         self.__clouds.append(points)
         flann = FLANN()
-        flann.build_index(points, algorithm='kdtree', trees=10)
+        flann.build_index(points, algorithm='kdtree', trees=self.__n_trees)
         self.__FLANNs.append(flann)
 
-    def match(self, points, checks=120):
+    def match(self, points, checks=default_checks):
         results = [None] * points.shape[0]
         dists = numpy.repeat(numpy.infty, points.shape[0])
         for j, flann in enumerate(self.__FLANNs):

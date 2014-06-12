@@ -157,7 +157,8 @@ def setup_argparser():
     icp_parser.add_argument('merge_method', default='merge_during', nargs='?',
                             choices=('merge_after', 'merge_during'),
                             help="Choose whether merges take place " +
-                            "after or during estimation")
+                            "after or during estimation. merge_during is" +
+                            "default.")
     # Optional args
     icp_parser.add_argument('-s', '--subsample', type=float, default=1.,
                             help="The proportion of points to sample")

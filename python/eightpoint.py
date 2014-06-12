@@ -40,7 +40,9 @@ def eightpoint(data_set_name, img_files, args):
     is >0 , we use ransac to find the best fundamental matrix.
     """
     # initialize sift detector
-    sift = cv2.SIFT(edgeThreshold=10, sigma=2, contrastThreshold=.01)
+    sift = cv2.SIFT()
+    #sift = cv2.SIFT(edgeThreshold=10, sigma=2, contrastThreshold=.01)
+
     # initialize params for FLANN
     index_params = {'algorithm': 0,    # FLANN_INDEX_KDTREE,
                     'trees': 5}

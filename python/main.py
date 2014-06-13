@@ -38,6 +38,7 @@ def icp_main(args):
                             for f in os.listdir(args.data_dir)
                             if f.endswith('.pcd') and not
                             f.endswith('normal.pcd')))[::args.jump]
+    num_files = min(pcd_files, args.max)
 
     if args.verbosity > 0:
         print "Performing Iterative closest point!"
@@ -53,7 +54,7 @@ def icp_main(args):
     # Write and/or show output
     if args.output_file:
         output_name = "{}_m{max}_method-{method}_s{subsample}_j{jump}.pcd".\
-            format(args.output_file, max=args.max, method=args.merge_method,
+            format(args.output_file, max=num_files, method=args.merge_method,
                    subsample=min(1.0, max(0.0, args.subsample)),
                    jump=args.jump)
         print "Saved pcd file as '{}'".format(output_name)
@@ -197,7 +198,7 @@ def setup_argparser():
                             help="Threshold for ransac")
     epi_parser.add_argument('-o', '--output-file',
                             help="Name used to save the matches")
-    epi_parser.add_argument('-m', '--max', type=int, default=0,
+    epi_parser.add_argument('-m', '--max', type=int, default=1e5,
                             help="Maximum number of images to read")
     epi_parser.add_argument('-j', '--jump', type=int, default=1,
                             help="Don't use every image, but only every j'th")

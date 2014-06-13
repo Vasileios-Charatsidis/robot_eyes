@@ -12,14 +12,12 @@ def structure_from_motion(pointviewmat, args):
     # Remove columns of points that do not persist throughout the pointviewmat
     if len(pointviewmat.shape) == 3:
         m, n, _ = pointviewmat.shape
-        persisting_pts = [pt_idx for pt_idx in xrange(n) if
-                          np.array([0, 0]) not in pointviewmat[:, pt_idx, :]]
         if args.verbosity:
             print "Of {} points".format(n),
+        persisting_pts = [pt_idx for pt_idx in xrange(n) if
+                          np.array([0, 0]) not in pointviewmat[:, pt_idx, :]]
         pointviewmat = pointviewmat[:, persisting_pts, :]
         m, n, _ = pointviewmat.shape
-        if args.verbosity:
-            print "{} points persist throughout the sequence".format(n)
 
         # Our pointviewmat is m x n x 2, we'll make it 2m x n
         pointviewmat = \
@@ -28,15 +26,26 @@ def structure_from_motion(pointviewmat, args):
     elif len(pointviewmat.shape) == 2:
         # We assume pointviewmat has the correct shape, i.e. 2m x n
         m, n = pointviewmat.shape
+        if args.verbosity:
+            print "Of {} points".format(n),
         persisting_pts = [pt_idx for pt_idx in xrange(n) if
                           all([pointviewmat[img_idx, pt_idx] and
                                pointviewmat[img_idx+1, pt_idx]
                                for img_idx in xrange(0, m, 2)])]
         pointviewmat = pointviewmat[:, persisting_pts]
+        pointviewmat = pointviewmat[[1,-1], :]
         m, n = pointviewmat.shape
+
     else:
         print "Pointviewmatrix could not be used for reconstruction"
         return
+
+    if args.verbosity:
+        print "{} points persist throughout the sequence".format(n)
+    if n == 0:
+        print "We can't use the matrix if 0 points persist!"
+        return
+
 
     # Subtract the mean for each image at the same time
     pointviewmat -= np.mean(pointviewmat, axis=1, keepdims=True)

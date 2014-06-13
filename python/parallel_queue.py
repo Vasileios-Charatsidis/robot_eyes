@@ -3,6 +3,7 @@ import sys
 
 
 def process_parallel(iter_to_process, evaluation_function,
+                     prologue='', epilogue='',
                      num_processes=3, verbose=False, **kwargs):
     '''
     Given an iterable with objects to process (as tuples, lists, or
@@ -16,6 +17,9 @@ def process_parallel(iter_to_process, evaluation_function,
     Tried to implement this as general as possible, so that I may
     reuse it later.
     '''
+    if verbose and prologue:
+        print prologue
+
     # Limit the number of processes to the number of items
     num_processes = min(num_processes, len(iter_to_process))
 
@@ -47,7 +51,7 @@ def process_parallel(iter_to_process, evaluation_function,
         ans = pipe.recv()
         output.update(ans)
     if verbose:
-        print '\nParallel processing complete.'
+        print '\n' + epilogue
     return [v for k, v in sorted(output.iteritems())]
 
 

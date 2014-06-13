@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import sys
 
 from collections import defaultdict
 from itertools import izip
@@ -24,14 +25,6 @@ def epipole(fund):
     return v[:, -1], v_prime[:, -1]
 
 
-def estimate_camera_matrices(img_files, normalized, ransac_iterations,
-                             verbosity):
-    """
-
-    """
-    # TODO call eightpoint correctly.
-
-
 def eightpoint(data_set_name, img_files, args):
     """
     Perform the eightpoint algorithm for a given set of images.
@@ -40,13 +33,12 @@ def eightpoint(data_set_name, img_files, args):
     is >0 , we use ransac to find the best fundamental matrix.
     """
     # initialize sift detector
-    sift = cv2.SIFT()
-    #sift = cv2.SIFT(edgeThreshold=10, sigma=2, contrastThreshold=.01)
+    sift = cv2.SIFT(edgeThreshold=10, sigma=2, contrastThreshold=.01)
 
     # initialize params for FLANN
     index_params = {'algorithm': 0,    # FLANN_INDEX_KDTREE,
-                    'trees': 5}
-    search_params = {'checks': 50}
+                    'trees': 3}
+    search_params = {'checks': 30}
 
     # For bear, crop image to 200:1400, 600:1800
     if data_set_name == "TeddyBear":
@@ -61,7 +53,7 @@ def eightpoint(data_set_name, img_files, args):
     tosave = []
 
     # Add the first file to the end for img n to img 0 matching
-    for n, img2_name in enumerate(img_files[1:] + [img_files[0]]):
+    for n, img2_name in enumerate(img_files[1:]):    # + [img_files[0]]):
         # Read the next file
         img2 = read_and_crop(img2_name, crop, grayscale=True)
         kp2, des2 = sift.detectAndCompute(img2, None)
@@ -98,14 +90,15 @@ def eightpoint(data_set_name, img_files, args):
             matches1 = unnormalized_m1
             matches2 = unnormalized_m2
 
-        if args.verbosity:
-            print 'F:', F
+        if args.verbosity > 1:
+            print '\nF:\n', F
 
         if args.ransac_iterations:
             matches1 = matches1[inliers]
             matches2 = matches2[inliers]
-            drawmatches("Inliers", img1, img2, matches1, matches2,
-                        args.verbosity)
+            if args.verbosity > 1:
+                drawmatches("Inliers", img1, img2, matches1, matches2,
+                            args.verbosity)
 
         # Save matches!
         tosave.append((matches1, matches2))
@@ -126,6 +119,7 @@ def construct_pointview_mat(num_images, matches):
     Construct pointview matrix.
     '''
     pointview = {i: defaultdict(list) for i in xrange(num_images)}
+    print "Constructing pointview matrix"
 
     # Iterate over match pairs, add columns if needed
     point_idx = 0
@@ -147,9 +141,13 @@ def construct_pointview_mat(num_images, matches):
     del pointview[-1]
     pointview_mat = np.zeros((num_images, point_idx, 2))
     for n, pointview_dict in pointview.iteritems():
+        sys.stdout.write("\rpoint {}/{}".format(row, point_idx))
+        sys.stdout.flush()
+
         for point, idcs in pointview_dict.iteritems():
             for idx in idcs:
                 pointview_mat[n, idx] = np.array(point[:2])
+    print ' done.'
     return pointview_mat
 
 
@@ -316,6 +314,8 @@ def fundamental_ransac(matches1, matches2, ransac_iterations,
         return inliers, F
 
     # 3. Feed it all to the parallel queue!
+    if verbose:
+        print "RANSAC with {} iterations..".format(ransac_iterations)
     from parallel_queue import process_parallel
     list_of_numinliers_and_fundamentals = \
         process_parallel(random_indices, evaluate, num_processes=4,

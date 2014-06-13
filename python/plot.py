@@ -56,8 +56,6 @@ def plot_bars(ax, X, args, title="", xlabel="", ylabel=""):
     max_Y = 0
     for i, (Y, color) in enumerate(zip(args, colors)):
         Y, Y_name = Y
-        if i == 1:
-            Y[-1] =
         rect = ax.bar(ind + 0.05 + i * width, Y, width, color=color)
         rects.append(rect)
         names.append(Y_name)

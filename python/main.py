@@ -27,6 +27,7 @@ def benchmark_icp(data_dir, max_num=20, outputname='pklfiles/benchmark.pkl',
                                           '-o', 'pcdfiles/experiment'])
             all_rms[merge_method, subsample] = args.func(args)
     pickle.dump(all_rms, open(outputname, 'wb'))
+    print "Saved data in ''".format(outputname)
 
 
 def icp_main(args):
@@ -60,7 +61,7 @@ def icp_main(args):
         print "Saved pcd file as '{}'".format(output_name)
         utils.writepcd(output_name, merged)
 
-        if not args.no_visualization:
+        if args.verbosity:
             print "Opening pclviewer to display results..."
             utils.showpcd(output_name)
     return all_rms, time_taken
@@ -95,14 +96,15 @@ def epi_main(args):
                                                       time.time() - now)
 
     # By default, save the output using params to name it
-    output_file = "{dataset}{name}{normalized}{ransac_iter}{jump}{max}".format(
-        dataset=data_set
+    output_file = "{dataset}{name}{normalized}{ransac_iter}{jump}{max}{thresh}".format(
+        dataset=data_set,
         name=args.output_file if args.output_file else "epi",
         normalized="_n" if args.normalized else "",
         ransac_iter="_r{}".format(args.ransac_iterations)
                     if args.ransac_iterations else "",
         jump="_j{}".format(args.jump) if args.jump else "",
-        max="_m{}".format(num_files))
+        max="_m{}".format(num_files),
+        thresh="_t{}".format(args.threshold))
     output_file += ".pkl"
 
     print "Saved points in '{}'".format(output_file) + \
@@ -178,8 +180,6 @@ def setup_argparser():
                             help="Maximum number of scenes to read")
     icp_parser.add_argument('-j', '--jump', type=int, default=1,
                             help="Don't use every image, but only every j'th")
-    icp_parser.add_argument('-nv', '--no-visualization', action='store_true',
-                            help="Don't display resulting pointcloud")
 
     # Subparser that handles Epipolar geometry args
     epi_parser = subparsers.add_parser('epi', help='Epipolar geometry' +
@@ -214,8 +214,6 @@ def setup_argparser():
     # Optional args
     sfm_parser.add_argument('-o', '--output-file', default="",
                             help="Name used to save the point cloud file")
-    sfm_parser.add_argument('-nv', '--no-visualization', action='store_true',
-                            help="Don't display resulting pointcloud")
     return arg_parser
 
 if __name__ == "__main__":

@@ -105,10 +105,7 @@ def merge(pcd_files, args):
         transformed_f2 = np.dot(R, f2_all.T).T + t
 
         # Compute rms for this scene transitions, for the whole set
-        if args.subsample < 1:
-            rms = compute_rms(merged, transformed_f2, nn_idx)
-        else:
-            rms = rms_subsample
+        rms = compute_rms(merged, transformed_f2, nn_idx)
         all_rms.append(rms)
 
         if args.verbosity:

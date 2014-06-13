@@ -33,7 +33,6 @@ def structure_from_motion(pointviewmat, args):
                                pointviewmat[img_idx+1, pt_idx]
                                for img_idx in xrange(0, m, 2)])]
         pointviewmat = pointviewmat[:, persisting_pts]
-        pointviewmat = pointviewmat[[1,-1], :]
         m, n = pointviewmat.shape
 
     else:
@@ -45,7 +44,6 @@ def structure_from_motion(pointviewmat, args):
     if n == 0:
         print "We can't use the matrix if 0 points persist!"
         return
-
 
     # Subtract the mean for each image at the same time
     pointviewmat -= np.mean(pointviewmat, axis=1, keepdims=True)
@@ -63,14 +61,15 @@ def structure_from_motion(pointviewmat, args):
     # M, S = remove_affine_amb(m, M, S)
     if args.output_file:
         utils.writepcd(args.output_file, S)
-    if not args.no_visualization:
-        fig = plt.figure(figsize=plt.figaspect(.5))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(S[:, 0], S[:, 1], S[:, 2])
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        plt.show()
+
+    fig = plt.figure(figsize=plt.figaspect(.5))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_title("Visualisation of 3D points after SfM")
+    ax.scatter(S[:, 0], S[:, 1], S[:, 2])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    plt.show()
 
 
 def remove_affine_amb(m, M, S):

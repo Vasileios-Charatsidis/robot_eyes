@@ -55,12 +55,3 @@ cp ../src/python/pyflann/ -r ./src/python/
 cd src/python/
 sudo python setup.py install
 cd ../../../ # Back to downloads/
-
-# Latest version of pyvlfeat
-wget https://pypi.python.org/packages/source/p/pyvlfeat/pyvlfeat-0.1.1a3.tar.gz
-tar xzf pyvlfeat-0.1.1a3.tar.gz
-cd pyvlfeat-0.1.1a3/
-# Recent Ubuntu version have a different -lboost_python to link to
-sed -i "s/-lboost_python-mt-py26/-lboost_python-py27/" setup.py 
-sudo python setup.py install
-cd ../ # Back to downloads/

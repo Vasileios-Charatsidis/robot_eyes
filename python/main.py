@@ -95,7 +95,8 @@ def epi_main(args):
                                                       time.time() - now)
 
     # By default, save the output using params to name it
-    output_file = "{name}{normalized}{ransac_iter}{jump}{max}".format(
+    output_file = "{dataset}{name}{normalized}{ransac_iter}{jump}{max}".format(
+        dataset=data_set
         name=args.output_file if args.output_file else "epi",
         normalized="_n" if args.normalized else "",
         ransac_iter="_r{}".format(args.ransac_iterations)

@@ -55,3 +55,10 @@ cp ../src/python/pyflann/ -r ./src/python/
 cd src/python/
 sudo python setup.py install
 cd ../../../ # Back to downloads/
+
+# Build own binary
+mkdir ../cpp/build/
+cd ../cpp/build/
+cmake ..
+make -j`nproc`
+cd ../../downloads/ # Back to downloads/

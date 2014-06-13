@@ -145,6 +145,14 @@ def sfm_main(args):
     sfm.structure_from_motion(pointviewmat, args)
 
 
+def mesh_main(args):
+    '''
+    Call necessary functions to create watertight model from a point cloud.
+    '''
+    utils.make_watertight(args.pointcloud, args.output_file)
+
+
+
 def setup_argparser():
     # plotter.disable()  # Will be enabled by icp_main or epi_main, if needed
 
@@ -204,8 +212,8 @@ def setup_argparser():
                             help="Don't use every image, but only every j'th")
 
     # Subparser that handles Structure from motion args
-    sfm_parser = subparsers.add_parser('sfm', help="Structure from motion" +
-                                       "assignment 3")
+    sfm_parser = subparsers.add_parser('sfm', help="Structure from motion " +
+                                       "assignment 3.1")
     sfm_parser.set_defaults(func=sfm_main)
     # Positional args
     sfm_parser.add_argument('points',
@@ -213,6 +221,18 @@ def setup_argparser():
     # Optional args
     sfm_parser.add_argument('-o', '--output-file', default="",
                             help="Name used to save the point cloud file")
+
+    #Subparser that handles Reconstruction args
+    mesh_parser = subparsers.add_parser('mesh', help="Watertight model " +
+                                        "assignment 3.2")
+    mesh_parser.set_defaults(func=mesh_main)
+    #Positional args
+    mesh_parser.add_argument('pointcloud',
+                             help="Pcd file containing a point cloud.")
+    #Optional args
+    mesh_parser.add_argument('-o', '--output-file',
+                             default="/tmp/kokkooijmanwiggers.vtk",
+                             help="Name used to save the VTK file.")
     return arg_parser
 
 if __name__ == "__main__":

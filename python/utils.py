@@ -35,6 +35,12 @@ def showpcd(name, pixelsize=20, color=(255, 255, 200)):
           stdout=open(os.devnull, 'w')).wait()
 
 
+def make_watertight(pcd_in, vtk_out):
+    Popen(["../cpp/build/modelmaker",
+        pcd_in, vtk_out],
+        stdout=open(os.devnull, 'w')).wait()
+
+
 def load_pointview_from_txt(filename):
     '''Pointviewmatrix is 2m x n'''
     M = sum(1 for _ in open(filename, 'r').readlines())

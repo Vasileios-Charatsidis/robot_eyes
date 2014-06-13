@@ -53,19 +53,24 @@ def plot_bars(ax, X, args, title="", xlabel="", ylabel=""):
 
     names, rects = [], []
     colors = ['r', 'y', 'b']
-    print args
+    max_Y = 0
     for i, (Y, color) in enumerate(zip(args, colors)):
         Y, Y_name = Y
+        if i == 1:
+            Y[-1] =
         rect = ax.bar(ind + 0.05 + i * width, Y, width, color=color)
         rects.append(rect)
         names.append(Y_name)
 
+        max_Y = max(max_Y, max(Y))
+
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_xticks(ind+width)
+    ax.set_xticks(ind + 0.5)
     ax.set_xticklabels([str(x) for x in X])
     ax.legend([r for r in rects], names)
+    ax.set_ylim([0, max_Y * 1.1])
 
     return ax
 

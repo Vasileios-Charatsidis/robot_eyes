@@ -1,9 +1,7 @@
 import numpy as np
 import utils
-import sys
 
 from mpl_toolkits.mplot3d.axes3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 
 
@@ -12,22 +10,36 @@ def structure_from_motion(pointviewmat, args):
     Create a 3D model based on a set of matching 2D points!
     '''
     # Remove columns of points that do not persist throughout the pointviewmat
-    m, n, _ = pointviewmat.shape
-    persisting_points = [pt_idx for pt_idx in xrange(n) if
-                         np.array([0, 0]) not in pointviewmat[:, pt_idx, :]]
-    if args.verbosity:
-        print "Of {} points".format(n),
-    pointviewmat = pointviewmat[:, persisting_points, :]
-    m, n, _ = pointviewmat.shape
-    if args.verbosity:
-        print "{} points persist throughout the sequence".format(n)
+    if len(pointviewmat.shape) == 3:
+        m, n, _ = pointviewmat.shape
+        persisting_pts = [pt_idx for pt_idx in xrange(n) if
+                          np.array([0, 0]) not in pointviewmat[:, pt_idx, :]]
+        if args.verbosity:
+            print "Of {} points".format(n),
+        pointviewmat = pointviewmat[:, persisting_pts, :]
+        m, n, _ = pointviewmat.shape
+        if args.verbosity:
+            print "{} points persist throughout the sequence".format(n)
+
+        # Our pointviewmat is m x n x 2, we'll make it 2m x n
+        pointviewmat = \
+            np.vstack(tuple([pointviewmat[m_, :, :].T for m_ in xrange(m)]))
+        print 'Shape', pointviewmat.shape
+    elif len(pointviewmat.shape) == 2:
+        # We assume pointviewmat has the correct shape, i.e. 2m x n
+        m, n = pointviewmat.shape
+        persisting_pts = [pt_idx for pt_idx in xrange(n) if
+                          all([pointviewmat[img_idx, pt_idx] and
+                               pointviewmat[img_idx+1, pt_idx]
+                               for img_idx in xrange(0, m, 2)])]
+        pointviewmat = pointviewmat[:, persisting_pts]
+        m, n = pointviewmat.shape
+    else:
+        print "Pointviewmatrix could not be used for reconstruction"
+        return
 
     # Subtract the mean for each image at the same time
     pointviewmat -= np.mean(pointviewmat, axis=1, keepdims=True)
-
-    # Our pointviewmat is m x n x 2, we'll make it 2m x n
-    pointviewmat = \
-        np.vstack(tuple([pointviewmat[m_, :, :].T for m_ in xrange(m)]))
 
     U, W, V = np.linalg.svd(pointviewmat)
     # Enforce rank 3
@@ -46,35 +58,17 @@ def structure_from_motion(pointviewmat, args):
         fig = plt.figure(figsize=plt.figaspect(.5))
         ax1 = fig.add_subplot(121, projection='3d')
         ax1.scatter(S[:, 0], S[:, 1], S[:, 2])
+        ax1.set_xlabel('x')
+        ax1.set_ylabel('y')
+        ax1.set_zlabel('z')
 
         ax2 = fig.add_subplot(122, projection='3d')
         ax2.plot_trisurf(S[:, 0], S[:, 1], S[:, 2])
+        ax2.set_xlabel('x')
+        ax2.set_ylabel('y')
+        ax2.set_zlabel('z')
 
-        #triangulate(S)
         plt.show()
-
-
-def triangulate(points):
-    '''Find all combinations of points'''
-    ax = Axes3D(plt.figure())
-
-    mesh_idx = 0
-    for idx1, pt1 in enumerate(points):
-        for idx2, pt2 in enumerate(points[idx1 + 1:, :]):
-            for pt3 in points[idx1 + idx2 + 2:, :]:
-
-                mesh = (pt1, pt2, pt3)
-                sys.stdout.write('\r {}'.format(mesh_idx))
-                sys.stdout.flush()
-                mesh_idx += 1
-
-                tri = Poly3DCollection([mesh])
-                ax.add_collection3d(tri)
-    ax.set_xlim((min(points[:, 0]), max(points[:, 0])))
-    ax.set_ylim((min(points[:, 1]), max(points[:, 1])))
-    ax.set_zlim((min(points[:, 2]), max(points[:, 2])))
-    plt.show()
-    return ax
 
 
 def remove_affine_amb(m, M, S):

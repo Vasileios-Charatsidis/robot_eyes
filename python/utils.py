@@ -35,6 +35,20 @@ def showpcd(name, pixelsize=20, color=(255, 255, 200)):
           stdout=open(os.devnull, 'w')).wait()
 
 
+def load_pointview_from_txt(filename):
+    '''Pointviewmatrix is 2m x n'''
+    M = sum(1 for _ in open(filename, 'r').readlines())
+    N = len(open(filename, 'r').readline().split())
+
+    pointviewmat = np.zeros((M, N))
+
+    for m, line in enumerate(open(filename, 'r').readlines()):
+        numbers = np.array([float(num) for num in line.split()])
+        pointviewmat[m, :] = numbers
+
+    return pointviewmat
+
+
 def filter_vecs(vectors, distance=1):
     """Remove all points that are more distant than the given distance."""
     return np.array([v for v in vectors if not v[-1] > distance])

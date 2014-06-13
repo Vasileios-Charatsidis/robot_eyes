@@ -12,10 +12,11 @@ import sfm
 import utils
 
 
-def benchmark_icp(data_dir, max_num=20):
+def benchmark_icp(data_dir, max_num=20, outputname='pklfiles/benchmark.pkl',
+                  subsamples=[0.1, 0.2, 0.3]):
     arg_parser = setup_argparser()
     all_rms = {}
-    for subsample in [0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1]:
+    for subsample in subsamples:
         for merge_method in ("merge_after", "merge_during"):
             print "\n\nMethod {}, subsample {}".format(merge_method, subsample)
             args = arg_parser.parse_args(['-v', 'icp', data_dir,
@@ -25,7 +26,7 @@ def benchmark_icp(data_dir, max_num=20):
                                           '-n',
                                           '-o', 'pcdfiles/experiment'])
             all_rms[merge_method, subsample] = args.func(args)
-    pickle.dump(all_rms, open('pklfiles/benchmark.pkl', 'wb'))
+    pickle.dump(all_rms, open(outputname, 'wb'))
 
 
 def icp_main(args):
@@ -120,12 +121,19 @@ def sfm_main(args):
     Call necessary functions to perform (affine) structure from motion.
     '''
     # TODO load pkl files containing inlier featurepoints in images !
-    try:
-        import cPickle as pickle
-        pointviewmat = pickle.load(open(args.points, 'rb'))
-    except:
-        print "Could not load file '{}'".format(args.points)
-        return
+    if args.points.endswith('.pkl'):
+        try:
+            pointviewmat = pickle.load(open(args.points, 'rb'))
+        except:
+            print "Could not load file '{}'".format(args.points)
+            return
+    elif args.points.endswith('.txt'):
+        pointviewmat = utils.load_pointview_from_txt(args.points)
+        try:
+            pointviewmat = utils.load_pointview_from_txt(args.points)
+        except:
+            print "Could not load file '{}'".format(args.points)
+            return
 
     if args.verbosity > 0:
         print "Applying affine sfm to find 3d model, given a set of" +\

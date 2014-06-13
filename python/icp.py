@@ -122,6 +122,8 @@ def merge(pcd_files, args):
         # Move to the next scene (not necessary for merge_during)
         f1 = f2
 
+    print "Total error", sum(all_rms)
+
     return merged, all_rms
 
 
@@ -197,8 +199,7 @@ def icp(source, target, D=3, verbosity=0, epsilon=0.000001):
         # u . S . v = correlation =
         # V . S . W.T
 
-        # TODO needed?
-        # ensure righthandedness coordinate system and calculate R
+        # Ensure righthandedness coordinate system and calculate R
         d = np.linalg.det(np.dot(v, u.T))
         sign_matrix = np.eye(D)
         sign_matrix[D-1, D-1] = d

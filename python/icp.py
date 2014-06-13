@@ -85,8 +85,9 @@ def merge(pcd_files, args):
                                          subsample_size=args.subsample,
                                          max_scenes=args.max):
         if args.verbosity > 0:
-            print "Estimating R, t from {} to {}".format(file_id + args.jump,
-                                                         file_id)
+            print "Estimating R, t from {} to {}".format(file_id * args.jump +
+                                                         args.jump,
+                                                         file_id * args.jump)
 
         # Transform f2 by all previous transformations
         R_c, t_c = dehomogenize_transformation(T_c)

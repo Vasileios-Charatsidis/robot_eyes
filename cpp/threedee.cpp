@@ -5,9 +5,14 @@
 #include <pcl/surface/poisson.h>
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        std::cout << "Use: " << argv[0] << " input.pcd output.vtk" << std::endl;
+    if (argc < 2) {
+        std::cout << "Use: " << argv[0] << " input.pcd [output.vtk]" << std::endl;
         return 0;
+    }
+    std::string input_pcd = argv[1];
+    std::string output_vtk = "/tmp/kokkooijmanwiggers.vtk";
+    if (argc >= 3) {
+      output_vtk = argv[2];
     }
 
     pcl::PCLPointCloud2::Ptr pcd_data(new pcl::PCLPointCloud2);
@@ -16,7 +21,7 @@ int main(int argc, char** argv) {
     pcl::PolygonMesh polygons;
 
     // Read data from files
-    pcl::io::loadPCDFile(argv[1], *pcd_data);
+    pcl::io::loadPCDFile(input_pcd, *pcd_data);
     pcl::fromPCLPointCloud2(*pcd_data, *cloud);
 
     // Decide on model parameters
@@ -28,7 +33,15 @@ int main(int argc, char** argv) {
     model.setInputCloud(cloud);
 
     model.performReconstruction(polygons);
-    pcl::io::saveVTKFile(argv[2], polygons);
+    //pcl::io::saveVTKFile(output_vtk, polygons);
+    pcl::io::saveVTKFile(output_vtk, polygons);
+
+    FILE * f = popen(("pcl_viewer " + output_vtk).c_str(), "r");
+    if (f == 0) {
+        fprintf(stderr, "Could not execute\n");
+        return EXIT_FAILURE;
+    }
+    pclose(f);
 
     return EXIT_SUCCESS;
 }

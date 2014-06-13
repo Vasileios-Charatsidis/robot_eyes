@@ -23,7 +23,6 @@ def benchmark_icp(data_dir, max_num=20, outputname='pklfiles/benchmark.pkl',
                                           merge_method,
                                           '-m', str(max_num),
                                           '-s', str(subsample),
-                                          '-n',
                                           '-o', 'pcdfiles/experiment'])
             all_rms[merge_method, subsample] = args.func(args)
     pickle.dump(all_rms, open(outputname, 'wb'))
@@ -61,7 +60,7 @@ def icp_main(args):
         print "Saved pcd file as '{}'".format(output_name)
         utils.writepcd(output_name, merged)
 
-        if args.verbosity:
+        if args.verbosity > 1:
             print "Opening pclviewer to display results..."
             utils.showpcd(output_name)
     return all_rms, time_taken

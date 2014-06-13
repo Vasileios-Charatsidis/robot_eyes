@@ -1,6 +1,8 @@
 import numpy
 import vtk
 
+import utils
+
 # TODO!
 def getData():
     """Retrieve the points as an Numpy array. 
@@ -8,7 +10,16 @@ def getData():
     Note the numpy.save and numpy.load functions for implementing this.
     These functions are favored over pickling.
     """
-    return numpy.zeros((1,1,1))
+    pcd_model = utils.readpcd('../models/Arif Qodari.pcd')
+    max_value = numpy.max(pcd_model, 0)
+    min_value = numpy.min(pcd_model, 0)
+    value_count = map(lambda x: len(set(x)), pcd_model.T)
+    scale = numpy.power(10, numpy.ceil(numpy.max(numpy.log10(value_count))))
+    dims = numpy.abs(scale * (min_value - max_value))
+    model = numpy.zeros(dims)
+    for point in pcd_model:
+        point = numpy.abs(scale * (point - max_value))
+        model[point] = 1
 
 
 def numpy_to_vtk(matrix, data_spacing=None, data_extent=None):
